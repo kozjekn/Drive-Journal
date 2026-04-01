@@ -1,0 +1,52 @@
+name: drive_journal
+description: "Motorcycle ride tracker app for iOS and Android."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State management
+  provider: ^6.1.2
+
+  # Dependency injection
+  get_it: ^8.0.3
+  injectable: ^2.5.0
+
+  # Local storage (Hive)
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.5
+
+  # Maps (OpenStreetMap)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
+  # GPS / Location
+  geolocator: ^13.0.2
+  permission_handler: ^11.3.1
+
+  # Utilities
+  intl: ^0.19.0
+  uuid: ^4.5.1
+  equatable: ^2.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # DI code generation
+  injectable_generator: ^2.6.2
+  build_runner: ^2.4.14
+
+  # Testing
+  mockito: ^5.4.5
+
+flutter:
+  uses-material-design: true
