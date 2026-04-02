@@ -58,6 +58,7 @@ void main() {
         startTime: DateTime.now(),
         endTime: null,
         routePoints: const [],
+        updatedAt: DateTime.now(),
       );
 
       expect(ride.isActive, isTrue);
@@ -76,6 +77,7 @@ void main() {
         startTime: now,
         endTime: now.add(const Duration(minutes: 10)),
         routePoints: const [],
+        updatedAt: now,
       );
 
       expect(ride.isActive, isFalse);
@@ -92,6 +94,7 @@ void main() {
         elevationGainMeters: 20,
         startTime: DateTime(2025, 3, 15),
         routePoints: const [],
+        updatedAt: DateTime(2025, 3, 15),
       );
 
       final updated = ride.copyWith(name: 'Updated Ride', distanceMeters: 2000);
@@ -114,6 +117,7 @@ void main() {
         elevationGainMeters: 10,
         startTime: startTime,
         routePoints: const [],
+        updatedAt: startTime,
       );
       final ride2 = Ride(
         id: '1',
@@ -125,6 +129,7 @@ void main() {
         elevationGainMeters: 10,
         startTime: startTime,
         routePoints: const [],
+        updatedAt: startTime,
       );
 
       expect(ride1, equals(ride2));

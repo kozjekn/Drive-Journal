@@ -29,6 +29,11 @@ class MockRideRepository implements RideRepository {
     _rides.removeWhere((r) => r.id == id);
   }
 
+  @override
+  Future<void> syncRides() async {
+    // No-op in mock
+  }
+
   void addRide(Ride ride) => _rides.add(ride);
   void clear() => _rides.clear();
 }

@@ -1,0 +1,32 @@
+# Production-like: full stack (API + MongoDB)
+services:
+  mongodb:
+    image: mongo:7
+    container_name: drivejournal-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: src/DriveJournal.API/Dockerfile
+    container_name: drivejournal-api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MongoDb__ConnectionString=mongodb://mongodb:27017
+      - MongoDb__DatabaseName=drive_journal
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=DriveJournal
+      - Jwt__Audience=DriveJournalApp
+      - GoogleAuth__ClientId=${GOOGLE_CLIENT_ID}
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:

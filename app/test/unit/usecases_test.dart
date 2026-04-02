@@ -21,6 +21,7 @@ void main() {
     startTime: DateTime(2025, 3, 15, 10, 0),
     endTime: DateTime(2025, 3, 15, 10, 20),
     routePoints: const [],
+    updatedAt: DateTime(2025, 3, 15, 10, 20),
   );
 
   setUp(() {

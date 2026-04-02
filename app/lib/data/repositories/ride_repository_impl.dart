@@ -15,16 +15,6 @@ class RideRepositoryImpl implements RideRepository {
 
   @override
   Future<List<Ride>> getAllRides() async {
-    // TODO: When backend is connected, try remote first, fall back to local
-    // try {
-    //   final remoteRides = await remoteDataSource.getAllRides();
-    //   for (final ride in remoteRides) {
-    //     await localDataSource.saveRide(ride);
-    //   }
-    //   return remoteRides.map((m) => m.toEntity()).toList();
-    // } catch (_) {
-    //   // Offline fallback
-    // }
     final models = await localDataSource.getAllRides();
     return models.map((m) => m.toEntity()).toList();
   }
@@ -37,26 +27,49 @@ class RideRepositoryImpl implements RideRepository {
 
   @override
   Future<void> saveRide(Ride ride) async {
-    final model = RideModel.fromEntity(ride);
+    final model = RideModel.fromEntity(
+      ride.copyWith(updatedAt: DateTime.now()),
+    );
     await localDataSource.saveRide(model);
-
-    // TODO: When backend is connected, sync to remote
-    // try {
-    //   await remoteDataSource.saveRide(model);
-    // } catch (_) {
-    //   // Queue for later sync
-    // }
   }
 
   @override
   Future<void> deleteRide(String id) async {
     await localDataSource.deleteRide(id);
+    try {
+      await remoteDataSource.deleteRide(id);
+    } catch (_) {
+      // Will be cleaned up on next sync
+    }
+  }
 
-    // TODO: When backend is connected, delete from remote
-    // try {
-    //   await remoteDataSource.deleteRide(id);
-    // } catch (_) {
-    //   // Queue for later sync
-    // }
+  @override
+  Future<void> syncRides() async {
+    final localModels = await localDataSource.getAllRides();
+
+    // Send unsynced or updated-since-last-sync rides
+    final ridesToSync = localModels.where((r) {
+      if (r.syncedAt == null) return true;
+      return r.updatedAt.isAfter(r.syncedAt!);
+    }).toList();
+
+    final result = await remoteDataSource.syncRides(ridesToSync);
+
+    // Save server rides locally
+    final now = DateTime.now();
+    for (final serverRide in result.serverRides) {
+      final withSync = RideModel.fromEntity(
+        serverRide.toEntity().copyWith(syncedAt: now),
+      );
+      await localDataSource.saveRide(withSync);
+    }
+
+    // Mark synced rides
+    for (final ride in ridesToSync) {
+      final synced = RideModel.fromEntity(
+        ride.toEntity().copyWith(syncedAt: now),
+      );
+      await localDataSource.saveRide(synced);
+    }
   }
 }

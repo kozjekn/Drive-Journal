@@ -26,6 +26,7 @@ void main() {
         startTime: DateTime(2025, 3, 15, 8, 30),
         endTime: DateTime(2025, 3, 15, 9, 45),
         routePoints: const [],
+        updatedAt: DateTime(2025, 3, 15, 9, 45),
       );
 
       var tapped = false;

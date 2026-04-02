@@ -1,56 +1,126 @@
+import 'package:dio/dio.dart';
+import 'package:drive_journal/core/network/api_client.dart';
+import 'package:drive_journal/core/network/api_exceptions.dart';
 import 'package:drive_journal/data/models/ride_model.dart';
 
-/// Remote data source for syncing rides with a backend API.
-///
-/// TODO: Implement actual API calls when backend is available.
-/// This stub allows the app to work fully offline. When a backend
-/// is connected, implement each method to:
-/// - POST rides to the server
-/// - GET rides from the server
-/// - Handle conflict resolution for offline/online sync
-/// - Add authentication headers
 abstract class RideRemoteDataSource {
   Future<List<RideModel>> getAllRides();
   Future<RideModel?> getRideById(String id);
   Future<void> saveRide(RideModel ride);
+  Future<void> updateRide(RideModel ride);
   Future<void> deleteRide(String id);
-  Future<void> syncRides(List<RideModel> localRides);
+  Future<SyncResult> syncRides(List<RideModel> localRides);
+  Future<List<RideModel>> getFeed({int page, int pageSize});
+  Future<List<RideModel>> getPublicRides(String userId);
+}
+
+class SyncResult {
+  final List<RideModel> serverRides;
+
+  SyncResult({required this.serverRides});
 }
 
 class RideRemoteDataSourceImpl implements RideRemoteDataSource {
-  // TODO: Inject HTTP client (e.g., dio or http package) when backend is ready
-  // final Dio _dio;
-  // final String _baseUrl;
+  final ApiClient _apiClient;
 
-  RideRemoteDataSourceImpl();
+  RideRemoteDataSourceImpl(this._apiClient);
 
   @override
   Future<List<RideModel>> getAllRides() async {
-    // TODO: GET /api/rides
-    return [];
+    try {
+      final response = await _apiClient.dio.get('/api/rides');
+      final list = response.data as List<dynamic>;
+      return list
+          .map((e) => RideModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
   }
 
   @override
   Future<RideModel?> getRideById(String id) async {
-    // TODO: GET /api/rides/:id
-    return null;
+    try {
+      final response = await _apiClient.dio.get('/api/rides/$id');
+      return RideModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      throw ApiException.fromDioError(e);
+    }
   }
 
   @override
   Future<void> saveRide(RideModel ride) async {
-    // TODO: POST /api/rides
+    try {
+      await _apiClient.dio.post('/api/rides', data: ride.toJson());
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<void> updateRide(RideModel ride) async {
+    try {
+      await _apiClient.dio.put('/api/rides/${ride.id}', data: ride.toJson());
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
   }
 
   @override
   Future<void> deleteRide(String id) async {
-    // TODO: DELETE /api/rides/:id
+    try {
+      await _apiClient.dio.delete('/api/rides/$id');
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
   }
 
   @override
-  Future<void> syncRides(List<RideModel> localRides) async {
-    // TODO: POST /api/rides/sync
-    // Implement conflict resolution strategy:
-    // - Compare timestamps
-    // - Server wins / client wins / manual merge
+  Future<SyncResult> syncRides(List<RideModel> localRides) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/api/rides/sync',
+        data: {'rides': localRides.map((r) => r.toJson()).toList()},
+      );
+      final serverRidesJson = response.data['serverRides'] as List<dynamic>;
+      final serverRides = serverRidesJson
+          .map((e) => RideModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return SyncResult(serverRides: serverRides);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<List<RideModel>> getFeed({int page = 1, int pageSize = 20}) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '/api/rides/feed',
+        queryParameters: {'page': page, 'pageSize': pageSize},
+      );
+      final list = response.data as List<dynamic>;
+      return list
+          .map((e) => RideModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<List<RideModel>> getPublicRides(String userId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '/api/rides/user/$userId/public',
+      );
+      final list = response.data as List<dynamic>;
+      return list
+          .map((e) => RideModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
   }
 }

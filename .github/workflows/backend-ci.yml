@@ -1,0 +1,43 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - 'backend-api/**'
+  pull_request:
+    paths:
+      - 'backend-api/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: backend-api
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+        working-directory: backend-api
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal
+        working-directory: backend-api
+        env:
+          MongoDb__ConnectionString: mongodb://localhost:27017
+          MongoDb__DatabaseName: drive_journal_test
+          Jwt__Secret: TestSecretKey_AtLeast32Characters_Long!!

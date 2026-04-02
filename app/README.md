@@ -1,6 +1,6 @@
 # Drive Journal
 
-A motorcycle ride tracker app for iOS and Android. Records GPS-tracked rides, stores them locally, and displays them with detailed stats and map views.
+A motorcycle ride tracker app for iOS and Android. Records GPS-tracked rides, stores them locally, syncs with a .NET 9 backend, and displays them with detailed stats and map views.
 
 ## Features
 
@@ -9,6 +9,11 @@ A motorcycle ride tracker app for iOS and Android. Records GPS-tracked rides, st
 - **Ride details** with route on map, elevation, avg/max speed, timestamps
 - **Offline-first** — works without internet (map tiles require connectivity)
 - **Swipe to delete** rides from the list
+- **Authentication** — email/password registration & login, Google Sign-In
+- **Ride sync** — automatic sync with backend using updatedAt/syncedAt timestamps
+- **Social feed** — follow other riders and see their public rides
+- **User search** — find and follow riders by name or email
+- **User profiles** — view follower/following counts and toggle follow
 
 ## Architecture
 
@@ -16,6 +21,8 @@ A motorcycle ride tracker app for iOS and Android. Records GPS-tracked rides, st
 - **State Management** — Provider (ChangeNotifier)
 - **Dependency Injection** — get_it + injectable
 - **Local Storage** — Hive (NoSQL key-value store)
+- **Remote API** — Dio HTTP client with JWT auth interceptor and auto token refresh
+- **Secure Storage** — flutter_secure_storage for tokens
 - **Maps** — OpenStreetMap via flutter_map
 - **GPS** — geolocator with background tracking (foreground service on Android, background modes on iOS)
 
@@ -23,11 +30,28 @@ A motorcycle ride tracker app for iOS and Android. Records GPS-tracked rides, st
 
 ```
 lib/
-├── core/           # Errors, theme, utilities (distance/speed/elevation calculators)
-├── data/           # Models, data sources (local Hive + remote stub), repository impl
-├── di/             # Dependency injection setup
-├── domain/         # Entities, repository interfaces, use cases
-├── presentation/   # Providers, pages, widgets
+├── core/
+│   ├── config/         # Environment configuration (dotenv)
+│   ├── error/          # Custom exceptions
+│   ├── network/        # API client (Dio), API exceptions
+│   ├── services/       # Location service
+│   ├── theme/          # App theme
+│   └── utils/          # Distance, speed, elevation calculators
+├── data/
+│   ├── datasources/
+│   │   ├── local/      # Hive ride storage, secure auth storage
+│   │   └── remote/     # Auth, rides, users API data sources
+│   ├── models/         # Ride/RoutePoint models with Hive adapters + JSON serialization
+│   └── repositories/   # Auth and ride repository implementations
+├── di/                 # Dependency injection (get_it)
+├── domain/
+│   ├── entities/       # Ride, RoutePoint, User, AuthToken, UserProfile
+│   ├── repositories/   # Abstract repository interfaces
+│   └── usecases/       # GetAllRides, SaveRide, DeleteRide, etc.
+├── presentation/
+│   ├── pages/          # Auth (login, register), home, feed, search, profile, ride pages
+│   ├── providers/      # Auth, feed, ride list, record ride, user search/profile providers
+│   └── widgets/        # Reusable widgets (ride card, stat tile)
 └── main.dart
 ```
 
@@ -43,8 +67,16 @@ lib/
 
 ```bash
 cd app
+cp .env.example .env        # then edit .env with your values
 flutter pub get
 ```
+
+### Environment Variables
+
+| Variable           | Description            | Default                 |
+| ------------------ | ---------------------- | ----------------------- |
+| `API_BASE_URL`     | Backend API base URL   | `http://localhost:5000` |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | _(empty)_               |
 
 ### Run
 
@@ -157,7 +189,9 @@ In Xcode: `Product > Archive`, then distribute via App Store Connect or export a
 
 ## TODOs / Future Work
 
-- **Backend sync** — remote data source is stubbed, ready for API integration
 - **Elevation accuracy** — GPS altitude is unreliable; integrate barometer or elevation API
 - **Ride export** — GPX/KML export
 - **User settings** — units (km/mi), map style, recording interval
+- **Push notifications** — notify when followed users post new rides
+- **Ride photos** — attach photos to rides
+- **Offline queue** — queue failed API calls for retry when connectivity returns

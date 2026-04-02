@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:drive_journal/domain/entities/route_point.dart';
 
+enum RideVisibility { private_, followers, public_ }
+
 class Ride extends Equatable {
   final String id;
   final String name;
@@ -12,6 +14,9 @@ class Ride extends Equatable {
   final DateTime startTime;
   final DateTime? endTime;
   final List<RoutePoint> routePoints;
+  final RideVisibility visibility;
+  final DateTime updatedAt;
+  final DateTime? syncedAt;
 
   const Ride({
     required this.id,
@@ -24,6 +29,9 @@ class Ride extends Equatable {
     required this.startTime,
     this.endTime,
     required this.routePoints,
+    this.visibility = RideVisibility.private_,
+    required this.updatedAt,
+    this.syncedAt,
   });
 
   bool get isActive => endTime == null;
@@ -39,6 +47,9 @@ class Ride extends Equatable {
     DateTime? startTime,
     DateTime? endTime,
     List<RoutePoint>? routePoints,
+    RideVisibility? visibility,
+    DateTime? updatedAt,
+    DateTime? syncedAt,
   }) {
     return Ride(
       id: id ?? this.id,
@@ -51,6 +62,9 @@ class Ride extends Equatable {
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       routePoints: routePoints ?? this.routePoints,
+      visibility: visibility ?? this.visibility,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
     );
   }
 
@@ -66,5 +80,8 @@ class Ride extends Equatable {
     startTime,
     endTime,
     routePoints,
+    visibility,
+    updatedAt,
+    syncedAt,
   ];
 }

@@ -30,6 +30,16 @@ class RoutePointModel extends RoutePoint {
     );
   }
 
+  factory RoutePointModel.fromJson(Map<String, dynamic> json) {
+    return RoutePointModel(
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+      altitude: (json['altitude'] as num).toDouble(),
+      speed: (json['speed'] as num).toDouble(),
+      timestamp: DateTime.parse(json['timestamp'] as String),
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'latitude': latitude,
@@ -37,6 +47,16 @@ class RoutePointModel extends RoutePoint {
       'altitude': altitude,
       'speed': speed,
       'timestamp': timestamp.millisecondsSinceEpoch,
+    };
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'latitude': latitude,
+      'longitude': longitude,
+      'altitude': altitude,
+      'speed': speed,
+      'timestamp': timestamp.toIso8601String(),
     };
   }
 

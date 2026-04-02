@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch API (Development)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/DriveJournal.API/bin/Debug/net9.0/DriveJournal.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/DriveJournal.API",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Attach to API",
+      "type": "coreclr",
+      "request": "attach",
+      "processName": "DriveJournal.API"
+    }
+  ]
+}

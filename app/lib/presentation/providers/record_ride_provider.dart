@@ -129,6 +129,7 @@ class RecordRideProvider extends ChangeNotifier {
       startTime: _startTime!,
       endTime: endTime,
       routePoints: List.from(_routePoints),
+      updatedAt: DateTime.now(),
     );
 
     try {

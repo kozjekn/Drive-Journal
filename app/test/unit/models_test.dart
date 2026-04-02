@@ -72,6 +72,7 @@ void main() {
         startTime: DateTime(2025, 3, 15, 10, 0),
         endTime: DateTime(2025, 3, 15, 10, 20),
         routePoints: const [],
+        updatedAt: DateTime(2025, 3, 15, 10, 20),
       );
 
       final model = RideModel.fromEntity(entity);
@@ -91,6 +92,7 @@ void main() {
         elevationGainMeters: 50,
         startTime: DateTime(2025, 3, 15, 10, 0),
         endTime: DateTime(2025, 3, 15, 10, 20),
+        updatedAt: DateTime(2025, 3, 15, 10, 20),
         routePoints: [
           RoutePoint(
             latitude: 46.0569,
@@ -125,6 +127,7 @@ void main() {
         startTime: DateTime(2025, 3, 15, 10, 0),
         endTime: null,
         routePoints: const [],
+        updatedAt: DateTime(2025, 3, 15, 10, 0),
       );
 
       final map = model.toMap();
@@ -145,6 +148,7 @@ void main() {
         elevationGainMeters: 10,
         startTime: DateTime(2025, 3, 15),
         routePoints: const [],
+        updatedAt: DateTime(2025, 3, 15),
       );
 
       final entity = model.toEntity();

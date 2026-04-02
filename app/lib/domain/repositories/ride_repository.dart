@@ -5,4 +5,5 @@ abstract class RideRepository {
   Future<Ride?> getRideById(String id);
   Future<void> saveRide(Ride ride);
   Future<void> deleteRide(String id);
+  Future<void> syncRides();
 }

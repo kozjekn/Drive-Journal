@@ -6,9 +6,9 @@ I want to add backend to the app so that rides can be synced between devices.
 ## Requirements
 
 - Add registration and authentication
+  - Users can register via google oauth or emai
 - Add ride synchronization between devices
 - Users can be found and followed
-- Users can register via google oauth or email
 - Each user can edit only their own rides
 - Followed user view in rides view other people rides
 - Users have their own profile picture
