@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import 'package:drive_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/domain/entities/route_point.dart';
 
 class RoutePointModel extends RoutePoint {
   const RoutePointModel({

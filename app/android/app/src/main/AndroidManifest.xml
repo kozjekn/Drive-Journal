@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="drive_journal"
+        android:label="ride_journal"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

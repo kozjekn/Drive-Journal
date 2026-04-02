@@ -1,6 +1,6 @@
 {
-  "name": "drive_journal",
-  "short_name": "drive_journal",
+  "name": "ride_journal",
+  "short_name": "ride_journal",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0175C2",

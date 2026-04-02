@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drive_journal/di/injection.dart';
-import 'package:drive_journal/presentation/pages/feed_page.dart';
-import 'package:drive_journal/presentation/pages/ride_list_page.dart';
-import 'package:drive_journal/presentation/pages/user_search_page.dart';
-import 'package:drive_journal/presentation/pages/user_profile_page.dart';
-import 'package:drive_journal/presentation/providers/auth_provider.dart';
-import 'package:drive_journal/presentation/providers/feed_provider.dart';
-import 'package:drive_journal/presentation/providers/user_profile_provider.dart';
-import 'package:drive_journal/presentation/providers/user_search_provider.dart';
+import 'package:ride_journal/di/injection.dart';
+import 'package:ride_journal/presentation/pages/feed_page.dart';
+import 'package:ride_journal/presentation/pages/ride_list_page.dart';
+import 'package:ride_journal/presentation/pages/user_search_page.dart';
+import 'package:ride_journal/presentation/pages/user_profile_page.dart';
+import 'package:ride_journal/presentation/providers/auth_provider.dart';
+import 'package:ride_journal/presentation/providers/feed_provider.dart';
+import 'package:ride_journal/presentation/providers/user_profile_provider.dart';
+import 'package:ride_journal/presentation/providers/user_search_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

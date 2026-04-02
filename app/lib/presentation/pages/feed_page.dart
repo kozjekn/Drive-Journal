@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drive_journal/presentation/providers/feed_provider.dart';
-import 'package:drive_journal/presentation/widgets/ride_card.dart';
+import 'package:ride_journal/presentation/providers/feed_provider.dart';
+import 'package:ride_journal/presentation/widgets/ride_card.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});

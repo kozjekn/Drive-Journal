@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:drive_journal/core/error/exceptions.dart';
+import 'package:ride_journal/core/error/exceptions.dart';
 
 abstract class LocationService {
   Future<bool> checkAndRequestPermission();

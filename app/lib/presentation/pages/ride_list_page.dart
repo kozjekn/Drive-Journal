@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drive_journal/presentation/pages/debug_page.dart';
-import 'package:drive_journal/presentation/pages/record_ride_page.dart';
-import 'package:drive_journal/presentation/pages/ride_detail_page.dart';
-import 'package:drive_journal/presentation/providers/ride_list_provider.dart';
-import 'package:drive_journal/presentation/widgets/ride_card.dart';
+import 'package:ride_journal/presentation/pages/debug_page.dart';
+import 'package:ride_journal/presentation/pages/record_ride_page.dart';
+import 'package:ride_journal/presentation/pages/ride_detail_page.dart';
+import 'package:ride_journal/presentation/providers/ride_list_provider.dart';
+import 'package:ride_journal/presentation/widgets/ride_card.dart';
 
 class RideListPage extends StatefulWidget {
   const RideListPage({super.key});

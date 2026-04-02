@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
-import 'package:drive_journal/data/models/route_point_model.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
+import 'package:ride_journal/data/models/route_point_model.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
 
 class RideModel extends Ride {
   const RideModel({

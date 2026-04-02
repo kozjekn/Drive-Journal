@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
-import 'package:drive_journal/domain/usecases/delete_ride.dart';
-import 'package:drive_journal/domain/usecases/get_all_rides.dart';
-import 'package:drive_journal/domain/usecases/get_ride_by_id.dart';
-import 'package:drive_journal/domain/usecases/save_ride.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
+import 'package:ride_journal/domain/usecases/delete_ride.dart';
+import 'package:ride_journal/domain/usecases/get_all_rides.dart';
+import 'package:ride_journal/domain/usecases/get_ride_by_id.dart';
+import 'package:ride_journal/domain/usecases/save_ride.dart';
 
 import '../mocks.dart';
 

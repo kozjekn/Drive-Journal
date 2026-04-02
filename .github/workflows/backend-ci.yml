@@ -39,5 +39,5 @@ jobs:
         working-directory: backend-api
         env:
           MongoDb__ConnectionString: mongodb://localhost:27017
-          MongoDb__DatabaseName: drive_journal_test
+          MongoDb__DatabaseName: ride_journal_test
           Jwt__Secret: TestSecretKey_AtLeast32Characters_Long!!

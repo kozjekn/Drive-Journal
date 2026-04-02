@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:drive_journal/core/utils/format_utils.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
+import 'package:ride_journal/core/utils/format_utils.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
 
 class RideCard extends StatelessWidget {
   final Ride ride;

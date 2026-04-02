@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drive_journal/data/models/ride_model.dart';
-import 'package:drive_journal/data/models/route_point_model.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
-import 'package:drive_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/data/models/ride_model.dart';
+import 'package:ride_journal/data/models/route_point_model.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
+import 'package:ride_journal/domain/entities/route_point.dart';
 
 void main() {
   group('RoutePointModel', () {

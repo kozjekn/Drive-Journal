@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import 'package:drive_journal/core/theme/app_theme.dart';
-import 'package:drive_journal/di/injection.dart';
-import 'package:drive_journal/presentation/pages/auth/login_page.dart';
-import 'package:drive_journal/presentation/pages/home_page.dart';
-import 'package:drive_journal/presentation/providers/auth_provider.dart';
-import 'package:drive_journal/presentation/providers/record_ride_provider.dart';
-import 'package:drive_journal/presentation/providers/ride_detail_provider.dart';
-import 'package:drive_journal/presentation/providers/ride_list_provider.dart';
+import 'package:ride_journal/core/theme/app_theme.dart';
+import 'package:ride_journal/di/injection.dart';
+import 'package:ride_journal/presentation/pages/auth/login_page.dart';
+import 'package:ride_journal/presentation/pages/home_page.dart';
+import 'package:ride_journal/presentation/providers/auth_provider.dart';
+import 'package:ride_journal/presentation/providers/record_ride_provider.dart';
+import 'package:ride_journal/presentation/providers/ride_detail_provider.dart';
+import 'package:ride_journal/presentation/providers/ride_list_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +32,7 @@ class RideTrackerApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => sl<RecordRideProvider>()),
       ],
       child: MaterialApp(
-        title: 'DriveJournal',
+        title: 'RideJournal',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: const AuthGate(),

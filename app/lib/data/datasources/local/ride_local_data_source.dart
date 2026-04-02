@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
-import 'package:drive_journal/core/error/exceptions.dart';
-import 'package:drive_journal/data/models/ride_model.dart';
+import 'package:ride_journal/core/error/exceptions.dart';
+import 'package:ride_journal/data/models/ride_model.dart';
 
 abstract class RideLocalDataSource {
   Future<List<RideModel>> getAllRides();

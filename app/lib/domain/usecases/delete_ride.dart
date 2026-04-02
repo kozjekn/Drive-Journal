@@ -1,4 +1,4 @@
-import 'package:drive_journal/domain/repositories/ride_repository.dart';
+import 'package:ride_journal/domain/repositories/ride_repository.dart';
 
 class DeleteRide {
   final RideRepository repository;

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:drive_journal/data/datasources/remote/user_remote_data_source.dart';
-import 'package:drive_journal/domain/entities/user_profile.dart';
+import 'package:ride_journal/data/datasources/remote/user_remote_data_source.dart';
+import 'package:ride_journal/domain/entities/user_profile.dart';
 
 class UserSearchProvider extends ChangeNotifier {
   final UserRemoteDataSource _userRemoteDataSource;

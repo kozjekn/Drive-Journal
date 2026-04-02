@@ -1,4 +1,4 @@
-# Drive Journal
+# Ride Journal
 
 A motorcycle ride tracker app for iOS and Android. Records GPS-tracked rides, stores them locally, syncs with a .NET 9 backend, and displays them with detailed stats and map views.
 

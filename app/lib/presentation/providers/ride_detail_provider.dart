@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
-import 'package:drive_journal/domain/usecases/get_ride_by_id.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
+import 'package:ride_journal/domain/usecases/get_ride_by_id.dart';
 
 class RideDetailProvider extends ChangeNotifier {
   final GetRideById _getRideById;

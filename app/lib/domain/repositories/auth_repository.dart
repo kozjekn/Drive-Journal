@@ -1,4 +1,4 @@
-import 'package:drive_journal/domain/entities/user.dart';
+import 'package:ride_journal/domain/entities/user.dart';
 
 abstract class AuthRepository {
   Future<User> register({

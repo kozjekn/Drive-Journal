@@ -7,7 +7,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/DriveJournal.sln",
+        "${workspaceFolder}/RideJournal.sln",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary;ForceNoAlign"
       ],
@@ -25,7 +25,7 @@
         "watch",
         "run",
         "--project",
-        "${workspaceFolder}/src/DriveJournal.API/DriveJournal.API.csproj"
+        "${workspaceFolder}/src/RideJournal.API/RideJournal.API.csproj"
       ],
       "problemMatcher": "$msCompile",
       "isBackground": true
@@ -36,7 +36,7 @@
       "type": "process",
       "args": [
         "test",
-        "${workspaceFolder}/DriveJournal.sln",
+        "${workspaceFolder}/RideJournal.sln",
         "--no-restore"
       ],
       "problemMatcher": "$msCompile"

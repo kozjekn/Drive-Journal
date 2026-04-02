@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:drive_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/domain/entities/route_point.dart';
 
 enum RideVisibility { private_, followers, public_ }
 

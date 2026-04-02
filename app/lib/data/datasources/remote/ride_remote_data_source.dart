@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:drive_journal/core/network/api_client.dart';
-import 'package:drive_journal/core/network/api_exceptions.dart';
-import 'package:drive_journal/data/models/ride_model.dart';
+import 'package:ride_journal/core/network/api_client.dart';
+import 'package:ride_journal/core/network/api_exceptions.dart';
+import 'package:ride_journal/data/models/ride_model.dart';
 
 abstract class RideRemoteDataSource {
   Future<List<RideModel>> getAllRides();

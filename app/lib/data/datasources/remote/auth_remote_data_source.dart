@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:drive_journal/core/network/api_client.dart';
-import 'package:drive_journal/core/network/api_exceptions.dart';
+import 'package:ride_journal/core/network/api_client.dart';
+import 'package:ride_journal/core/network/api_exceptions.dart';
 
 class AuthRemoteDataSource {
   final ApiClient _apiClient;

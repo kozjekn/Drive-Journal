@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:drive_journal/core/config/env_config.dart';
+import 'package:ride_journal/core/config/env_config.dart';
 
 class ApiClient {
   final Dio _dio;

@@ -1,5 +1,5 @@
-import 'package:drive_journal/domain/entities/ride.dart';
-import 'package:drive_journal/domain/repositories/ride_repository.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
+import 'package:ride_journal/domain/repositories/ride_repository.dart';
 
 class GetAllRides {
   final RideRepository repository;

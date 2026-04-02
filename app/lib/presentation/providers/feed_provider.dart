@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:drive_journal/data/datasources/remote/ride_remote_data_source.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
+import 'package:ride_journal/data/datasources/remote/ride_remote_data_source.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
 
 class FeedProvider extends ChangeNotifier {
   final RideRemoteDataSource _rideRemoteDataSource;

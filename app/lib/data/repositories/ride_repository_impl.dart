@@ -1,8 +1,8 @@
-import 'package:drive_journal/data/datasources/local/ride_local_data_source.dart';
-import 'package:drive_journal/data/datasources/remote/ride_remote_data_source.dart';
-import 'package:drive_journal/data/models/ride_model.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
-import 'package:drive_journal/domain/repositories/ride_repository.dart';
+import 'package:ride_journal/data/datasources/local/ride_local_data_source.dart';
+import 'package:ride_journal/data/datasources/remote/ride_remote_data_source.dart';
+import 'package:ride_journal/data/models/ride_model.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
+import 'package:ride_journal/domain/repositories/ride_repository.dart';
 
 class RideRepositoryImpl implements RideRepository {
   final RideLocalDataSource localDataSource;

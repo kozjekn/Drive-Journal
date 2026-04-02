@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:drive_journal/core/network/api_client.dart';
-import 'package:drive_journal/core/network/api_exceptions.dart';
-import 'package:drive_journal/domain/entities/user_profile.dart';
+import 'package:ride_journal/core/network/api_client.dart';
+import 'package:ride_journal/core/network/api_exceptions.dart';
+import 'package:ride_journal/domain/entities/user_profile.dart';
 
 class UserRemoteDataSource {
   final ApiClient _apiClient;

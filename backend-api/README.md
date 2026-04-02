@@ -1,6 +1,6 @@
-# DriveJournal Backend API
+# RideJournal Backend API
 
-C# .NET 9 REST API for the DriveJournal motorcycle ride tracker. Provides authentication, ride CRUD, sync, user profiles, and social features.
+C# .NET 9 REST API for the RideJournal motorcycle ride tracker. Provides authentication, ride CRUD, sync, user profiles, and social features.
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ This starts a local MongoDB instance on port `27017`.
 ### 2. Run the API
 
 ```bash
-dotnet run --project src/DriveJournal.API
+dotnet run --project src/RideJournal.API
 ```
 
 The API starts at `http://localhost:5000` by default (configured in launch profile).
@@ -41,7 +41,7 @@ dotnet build
 ### Run with hot reload
 
 ```bash
-dotnet watch run --project src/DriveJournal.API
+dotnet watch run --project src/RideJournal.API
 ```
 
 ### Run tests
@@ -61,7 +61,7 @@ Use `Ctrl+Shift+B` / `Cmd+Shift+B` to run the default build task.
 
 ## Configuration
 
-Configuration is in `src/DriveJournal.API/appsettings.json` and overridden by `appsettings.Development.json` locally.
+Configuration is in `src/RideJournal.API/appsettings.json` and overridden by `appsettings.Development.json` locally.
 
 Key settings:
 
@@ -94,13 +94,13 @@ This starts both the API (port `5000`) and MongoDB.
 
 ```
 src/
-├── DriveJournal.Domain         # Entities, enums, repository interfaces
-├── DriveJournal.Application    # CQRS (MediatR), DTOs, validators, mapping
-├── DriveJournal.Infrastructure # MongoDB repos, JWT, BCrypt, Google auth
-└── DriveJournal.API            # Controllers, middleware, Swagger, DI setup
+├── RideJournal.Domain         # Entities, enums, repository interfaces
+├── RideJournal.Application    # CQRS (MediatR), DTOs, validators, mapping
+├── RideJournal.Infrastructure # MongoDB repos, JWT, BCrypt, Google auth
+└── RideJournal.API            # Controllers, middleware, Swagger, DI setup
 
 tests/
-└── DriveJournal.Tests          # Unit + integration tests
+└── RideJournal.Tests          # Unit + integration tests
 ```
 
 ## API Endpoints

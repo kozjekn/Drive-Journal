@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:drive_journal/core/utils/format_utils.dart';
-import 'package:drive_journal/presentation/providers/record_ride_provider.dart';
+import 'package:ride_journal/core/utils/format_utils.dart';
+import 'package:ride_journal/presentation/providers/record_ride_provider.dart';
 
 class RecordRidePage extends StatelessWidget {
   const RecordRidePage({super.key});
@@ -97,7 +97,7 @@ class _LiveMap extends StatelessWidget {
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.drivejournal.drive_journal',
+          userAgentPackageName: 'com.ridejournal.ride_journal',
         ),
         if (points.length >= 2)
           PolylineLayer(

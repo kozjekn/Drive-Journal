@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
-import 'package:drive_journal/domain/usecases/delete_ride.dart';
-import 'package:drive_journal/domain/usecases/get_all_rides.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
+import 'package:ride_journal/domain/usecases/delete_ride.dart';
+import 'package:ride_journal/domain/usecases/get_all_rides.dart';
 
 class RideListProvider extends ChangeNotifier {
   final GetAllRides _getAllRides;

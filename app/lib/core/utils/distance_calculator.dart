@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:drive_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/domain/entities/route_point.dart';
 
 class DistanceCalculator {
   /// Calculates the total distance in meters from a list of route points

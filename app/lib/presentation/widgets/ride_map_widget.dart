@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:drive_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/domain/entities/route_point.dart';
 
 class RideMapWidget extends StatelessWidget {
   final List<RoutePoint> routePoints;
@@ -54,7 +54,7 @@ class RideMapWidget extends StatelessWidget {
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.drivejournal.drive_journal',
+              userAgentPackageName: 'com.ridejournal.ride_journal',
             ),
             if (_latLngPoints.length >= 2)
               PolylineLayer(

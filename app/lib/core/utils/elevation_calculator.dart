@@ -1,4 +1,4 @@
-import 'package:drive_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/domain/entities/route_point.dart';
 
 class ElevationCalculator {
   /// Calculates total elevation gain in meters from route points.

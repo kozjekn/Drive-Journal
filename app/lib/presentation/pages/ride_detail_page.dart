@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drive_journal/core/utils/format_utils.dart';
-import 'package:drive_journal/presentation/providers/ride_detail_provider.dart';
-import 'package:drive_journal/presentation/widgets/ride_map_widget.dart';
-import 'package:drive_journal/presentation/widgets/stat_tile.dart';
+import 'package:ride_journal/core/utils/format_utils.dart';
+import 'package:ride_journal/presentation/providers/ride_detail_provider.dart';
+import 'package:ride_journal/presentation/widgets/ride_map_widget.dart';
+import 'package:ride_journal/presentation/widgets/stat_tile.dart';
 
 class RideDetailPage extends StatefulWidget {
   final String rideId;

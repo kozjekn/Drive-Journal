@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drive_journal/core/utils/format_utils.dart';
+import 'package:ride_journal/core/utils/format_utils.dart';
 
 void main() {
   group('FormatUtils', () {

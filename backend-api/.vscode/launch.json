@@ -6,9 +6,9 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
-      "program": "${workspaceFolder}/src/DriveJournal.API/bin/Debug/net9.0/DriveJournal.API.dll",
+      "program": "${workspaceFolder}/src/RideJournal.API/bin/Debug/net9.0/RideJournal.API.dll",
       "args": [],
-      "cwd": "${workspaceFolder}/src/DriveJournal.API",
+      "cwd": "${workspaceFolder}/src/RideJournal.API",
       "stopAtEntry": false,
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",
@@ -20,7 +20,7 @@
       "name": "Attach to API",
       "type": "coreclr",
       "request": "attach",
-      "processName": "DriveJournal.API"
+      "processName": "RideJournal.API"
     }
   ]
 }

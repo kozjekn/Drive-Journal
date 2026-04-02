@@ -2,7 +2,7 @@
 services:
   mongodb:
     image: mongo:7
-    container_name: drivejournal-mongodb
+    container_name: ridejournal-mongodb
     ports:
       - "27017:27017"
     volumes:
@@ -12,17 +12,17 @@ services:
   api:
     build:
       context: .
-      dockerfile: src/DriveJournal.API/Dockerfile
-    container_name: drivejournal-api
+      dockerfile: src/RideJournal.API/Dockerfile
+    container_name: ridejournal-api
     ports:
       - "5000:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MongoDb__ConnectionString=mongodb://mongodb:27017
-      - MongoDb__DatabaseName=drive_journal
+      - MongoDb__DatabaseName=ride_journal
       - Jwt__Secret=${JWT_SECRET}
-      - Jwt__Issuer=DriveJournal
-      - Jwt__Audience=DriveJournalApp
+      - Jwt__Issuer=RideJournal
+      - Jwt__Audience=RideJournalApp
       - GoogleAuth__ClientId=${GOOGLE_CLIENT_ID}
     depends_on:
       - mongodb

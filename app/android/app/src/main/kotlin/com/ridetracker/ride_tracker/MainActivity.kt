@@ -1,4 +1,4 @@
-package com.drivejournal.drive_journal
+package com.ridejournal.ride_journal
 
 import io.flutter.embedding.android.FlutterActivity
 

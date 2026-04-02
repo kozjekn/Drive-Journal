@@ -1,0 +1,6 @@
+@RideJournal.API_HostAddress = http://localhost:5160
+
+GET {{RideJournal.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

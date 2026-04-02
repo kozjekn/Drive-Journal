@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:drive_journal/core/services/location_service.dart';
-import 'package:drive_journal/core/utils/distance_calculator.dart';
-import 'package:drive_journal/core/utils/elevation_calculator.dart';
-import 'package:drive_journal/core/utils/speed_calculator.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
-import 'package:drive_journal/domain/entities/route_point.dart';
-import 'package:drive_journal/domain/usecases/save_ride.dart';
+import 'package:ride_journal/core/services/location_service.dart';
+import 'package:ride_journal/core/utils/distance_calculator.dart';
+import 'package:ride_journal/core/utils/elevation_calculator.dart';
+import 'package:ride_journal/core/utils/speed_calculator.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
+import 'package:ride_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/domain/usecases/save_ride.dart';
 import 'package:uuid/uuid.dart';
 
 enum RecordingState { idle, recording, saving, error }

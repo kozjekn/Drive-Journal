@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:drive_journal/domain/entities/user.dart';
-import 'package:drive_journal/domain/entities/auth_token.dart';
+import 'package:ride_journal/domain/entities/user.dart';
+import 'package:ride_journal/domain/entities/auth_token.dart';
 
 class AuthLocalDataSource {
   final FlutterSecureStorage _secureStorage;

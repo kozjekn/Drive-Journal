@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:drive_journal/domain/entities/user.dart';
-import 'package:drive_journal/domain/repositories/auth_repository.dart';
+import 'package:ride_journal/domain/entities/user.dart';
+import 'package:ride_journal/domain/repositories/auth_repository.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 

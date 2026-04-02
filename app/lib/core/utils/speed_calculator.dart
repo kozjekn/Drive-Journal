@@ -1,4 +1,4 @@
-import 'package:drive_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/domain/entities/route_point.dart';
 
 class SpeedCalculator {
   /// Returns average speed in km/h from route points based on

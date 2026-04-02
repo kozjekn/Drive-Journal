@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drive_journal/presentation/pages/user_profile_page.dart';
-import 'package:drive_journal/presentation/providers/user_search_provider.dart';
+import 'package:ride_journal/presentation/pages/user_profile_page.dart';
+import 'package:ride_journal/presentation/providers/user_search_provider.dart';
 
 class UserSearchPage extends StatefulWidget {
   const UserSearchPage({super.key});

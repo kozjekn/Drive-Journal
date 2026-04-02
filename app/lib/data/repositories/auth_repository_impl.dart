@@ -1,10 +1,10 @@
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:drive_journal/core/config/env_config.dart';
-import 'package:drive_journal/data/datasources/local/auth_local_data_source.dart';
-import 'package:drive_journal/data/datasources/remote/auth_remote_data_source.dart';
-import 'package:drive_journal/domain/entities/auth_token.dart';
-import 'package:drive_journal/domain/entities/user.dart';
-import 'package:drive_journal/domain/repositories/auth_repository.dart';
+import 'package:ride_journal/core/config/env_config.dart';
+import 'package:ride_journal/data/datasources/local/auth_local_data_source.dart';
+import 'package:ride_journal/data/datasources/remote/auth_remote_data_source.dart';
+import 'package:ride_journal/domain/entities/auth_token.dart';
+import 'package:ride_journal/domain/entities/user.dart';
+import 'package:ride_journal/domain/repositories/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;

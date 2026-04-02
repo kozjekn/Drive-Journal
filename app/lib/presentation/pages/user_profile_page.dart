@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drive_journal/presentation/providers/auth_provider.dart';
-import 'package:drive_journal/presentation/providers/user_profile_provider.dart';
+import 'package:ride_journal/presentation/providers/auth_provider.dart';
+import 'package:ride_journal/presentation/providers/user_profile_provider.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String userId;

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:drive_journal/domain/entities/ride.dart';
-import 'package:drive_journal/domain/repositories/ride_repository.dart';
-import 'package:drive_journal/presentation/providers/ride_list_provider.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
+import 'package:ride_journal/domain/repositories/ride_repository.dart';
+import 'package:ride_journal/presentation/providers/ride_list_provider.dart';
 
 class MockRideRepository implements RideRepository {
   final List<Ride> _rides = [];

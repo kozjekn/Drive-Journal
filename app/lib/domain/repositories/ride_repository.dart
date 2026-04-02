@@ -1,4 +1,4 @@
-import 'package:drive_journal/domain/entities/ride.dart';
+import 'package:ride_journal/domain/entities/ride.dart';
 
 abstract class RideRepository {
   Future<List<Ride>> getAllRides();
