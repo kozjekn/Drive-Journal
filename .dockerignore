@@ -1,0 +1,13 @@
+# Build artifacts
+**/bin
+**/obj
+app/build
+app/.dart_tool
+
+# Generated / local config (regenerated inside the image)
+app/.env
+
+# VCS & deps
+**/.git
+**/.gitignore
+**/node_modules

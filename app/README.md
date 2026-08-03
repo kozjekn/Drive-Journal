@@ -31,7 +31,7 @@ A motorcycle ride tracker app for iOS and Android. Records GPS-tracked rides, st
 ```
 lib/
 ├── core/
-│   ├── config/         # Environment configuration (dotenv)
+│   ├── config/         # Environment configuration (compile-time --dart-define)
 │   ├── error/          # Custom exceptions
 │   ├── network/        # API client (Dio), API exceptions
 │   ├── services/       # Location service
@@ -73,6 +73,10 @@ flutter pub get
 
 ### Environment Variables
 
+Config is baked in at build time via `--dart-define-from-file` (read by
+[lib/core/config/env_config.dart](lib/core/config/env_config.dart) with `String.fromEnvironment`).
+Values live in `.env` for local dev and `.env.prod` for production builds.
+
 | Variable           | Description            | Default                 |
 | ------------------ | ---------------------- | ----------------------- |
 | `API_BASE_URL`     | Backend API base URL   | `http://localhost:5000` |
@@ -81,8 +85,61 @@ flutter pub get
 ### Run
 
 ```bash
-flutter run
+flutter run --dart-define-from-file=.env
 ```
+
+## Google Sign-In Setup
+
+### 1. Create OAuth client IDs in Google Cloud Console
+
+1. Open the [Google Cloud Console](https://console.cloud.google.com/) and select (or create) a project.
+2. Configure **APIs & Services → OAuth consent screen** (External, app name, support email). Add yourself as a test user while the app is in *Testing* mode.
+3. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID** and create:
+
+   | Type | Required input | Used for |
+   | ---- | -------------- | -------- |
+   | **Android** | Package name (`com.drivejournal.drive_journal`) + SHA-1 of your signing key | Android native sign-in |
+   | **iOS** | iOS bundle identifier (see `ios/Runner.xcodeproj`) | iOS native sign-in |
+   | **Web application** | (no extra config) | `serverClientId` — the audience the backend expects |
+
+   Get the debug SHA-1 with:
+
+   ```bash
+   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep SHA1
+   ```
+
+   For release builds, run the same command against your release keystore and add that SHA-1 to the Android client too.
+
+### 2. Configure the app
+
+Put the **Web application** Client ID in `.env`:
+
+```bash
+GOOGLE_CLIENT_ID=1234567890-xxxxxxxxxxxx.apps.googleusercontent.com
+```
+
+This value is loaded by [lib/core/config/env_config.dart](lib/core/config/env_config.dart) and passed to `GoogleSignIn` in [lib/data/repositories/auth_repository_impl.dart](lib/data/repositories/auth_repository_impl.dart). The backend must use the **same** Client ID in its `GoogleAuth:ClientId` setting so the `aud` check passes.
+
+### 3. Platform-specific config
+
+**Android** — no code change needed; the Android OAuth client is matched by package name + SHA-1.
+
+**iOS** — add the iOS OAuth client's reversed client ID as a URL scheme in `ios/Runner/Info.plist`:
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <!-- Reversed iOS client ID, e.g. com.googleusercontent.apps.1234567890-xxxxx -->
+      <string>com.googleusercontent.apps.YOUR_IOS_CLIENT_ID</string>
+    </array>
+  </dict>
+</array>
+```
+
+Without this URL scheme, Google's sign-in sheet won't be able to return to the app on iOS.
 
 ### Test
 
@@ -109,14 +166,14 @@ dart format lib/ test/
 3. Run:
 
 ```bash
-flutter run -d android
+flutter run -d android --dart-define-from-file=.env
 ```
 
 To pick a specific emulator if multiple devices are connected:
 
 ```bash
 flutter devices          # list available devices
-flutter run -d <device-id>
+flutter run -d <device-id> --dart-define-from-file=.env
 ```
 
 **Hot reload** is available — press `r` in the terminal. Press `R` for hot restart.
@@ -132,7 +189,7 @@ open -a Simulator
 2. Run:
 
 ```bash
-flutter run -d ios
+flutter run -d ios --dart-define-from-file=.env
 ```
 
 > **Note:** To run on a physical iOS device, you need an Apple Developer account and must configure signing in `ios/Runner.xcworkspace` under `Signing & Capabilities`.
@@ -144,7 +201,7 @@ flutter run -d ios
 ### APK (universal)
 
 ```bash
-flutter build apk --release
+flutter build apk --release --dart-define-from-file=.env.prod
 ```
 
 Output: `build/app/outputs/flutter-apk/app-release.apk`
@@ -152,7 +209,7 @@ Output: `build/app/outputs/flutter-apk/app-release.apk`
 ### App Bundle (recommended for Play Store)
 
 ```bash
-flutter build appbundle --release
+flutter build appbundle --release --dart-define-from-file=.env.prod
 ```
 
 Output: `build/app/outputs/bundle/release/app-release.aab`
@@ -162,7 +219,7 @@ Output: `build/app/outputs/bundle/release/app-release.aab`
 ## Build Production iOS
 
 ```bash
-flutter build ios --release
+flutter build ios --release --dart-define-from-file=.env.prod
 ```
 
 Then open the Xcode workspace to archive and distribute:

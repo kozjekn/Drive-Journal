@@ -38,9 +38,6 @@ dependencies:
   # Auth
   google_sign_in: ^6.2.2
 
-  # Environment config
-  flutter_dotenv: ^5.2.1
-
   # Image compression
   flutter_image_compress: ^2.3.0
 
@@ -63,5 +60,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - .env

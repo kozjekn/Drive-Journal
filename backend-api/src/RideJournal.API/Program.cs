@@ -76,8 +76,34 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAll");
+
+// Serve the Flutter web build (packaged into wwwroot in the production image).
+// No-op in dev where wwwroot is empty.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// SPA fallback: serve index.html for client-side routes, but let /api/* 404 normally.
+app.MapFallback(context =>
+{
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return Task.CompletedTask;
+    }
+
+    var indexPath = Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "index.html");
+    if (!File.Exists(indexPath))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return Task.CompletedTask;
+    }
+
+    context.Response.ContentType = "text/html";
+    return context.Response.SendFileAsync(indexPath);
+});
 
 app.Run();

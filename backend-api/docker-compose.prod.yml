@@ -9,13 +9,11 @@ services:
       - mongodb_data:/data/db
     restart: unless-stopped
 
-  api:
-    build:
-      context: .
-      dockerfile: src/RideJournal.API/Dockerfile
-    container_name: ridejournal-api
+  ridejournal:
+    image: nejek16/ridejournal:latest
+    container_name: ridejournal
     ports:
-      - "5000:8080"
+      - "8080:8080"          # http://localhost:8080 -> UI at / and API under /api
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MongoDb__ConnectionString=mongodb://mongodb:27017

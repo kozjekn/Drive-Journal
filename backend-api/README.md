@@ -59,37 +59,6 @@ Open the `backend-api` folder in VS Code. Pre-configured debug launch configs ar
 
 Use `Ctrl+Shift+B` / `Cmd+Shift+B` to run the default build task.
 
-## Configuration
-
-Configuration is in `src/RideJournal.API/appsettings.json` and overridden by `appsettings.Development.json` locally.
-
-Key settings:
-
-| Section | Key | Description |
-|---------|-----|-------------|
-| `MongoDb` | `ConnectionString` | MongoDB connection string |
-| `MongoDb` | `DatabaseName` | Database name |
-| `Jwt` | `Secret` | JWT signing key (min 32 chars) |
-| `Jwt` | `Issuer` / `Audience` | Token issuer and audience |
-| `GoogleAuth` | `ClientId` | Google OAuth client ID |
-
-For production, override via environment variables (double underscore notation):
-
-```bash
-export MongoDb__ConnectionString="mongodb://prod-host:27017"
-export Jwt__Secret="your-production-secret-key-here!!"
-```
-
-## Docker (Production)
-
-### Build and run full stack
-
-```bash
-JWT_SECRET="your-secret" GOOGLE_CLIENT_ID="your-id" docker compose -f docker-compose.prod.yml up --build
-```
-
-This starts both the API (port `5000`) and MongoDB.
-
 ## Architecture
 
 ```
@@ -103,31 +72,50 @@ tests/
 └── RideJournal.Tests          # Unit + integration tests
 ```
 
-## API Endpoints
+## Production
 
-### Auth
-- `POST /api/auth/register` — Register with email/password
-- `POST /api/auth/login` — Login with email/password
-- `POST /api/auth/google` — Login/register with Google ID token
-- `POST /api/auth/refresh` — Refresh access token
+Build the **combined image** (Flutter web bundle + API). Note the build context is the repo
+root (`..`), not `backend-api/`, and it uses `Dockerfile.prod`:
 
-### Rides (requires auth)
-- `GET /api/rides` — Get my rides
-- `GET /api/rides/{id}` — Get ride by ID
-- `POST /api/rides` — Create ride
-- `PUT /api/rides/{id}` — Update ride
-- `DELETE /api/rides/{id}` — Delete ride
-- `POST /api/rides/sync` — Sync rides between device and server
-- `GET /api/rides/feed` — Get followed users' rides
-- `GET /api/rides/public/{id}` — Get public ride (no auth required)
+Config is baked into the web bundle at build time from the committed `app/.env.prod` file via
+`flutter build web --dart-define-from-file=.env.prod` (no runtime asset fetch). Edit
+`app/.env.prod` to change `API_BASE_URL` / `GOOGLE_CLIENT_ID` before building.
 
-### Users (requires auth)
-- `GET /api/users/me` — Get my profile
-- `PUT /api/users/me` — Update my profile
-- `POST /api/users/me/profile-picture` — Upload profile picture
-- `GET /api/users/search?q=` — Search users
-- `GET /api/users/{id}` — Get user profile
-- `POST /api/users/{id}/follow` — Follow user
-- `DELETE /api/users/{id}/follow` — Unfollow user
-- `GET /api/users/{id}/followers` — Get followers
-- `GET /api/users/{id}/following` — Get following
+```
+docker build \
+  -f ../Dockerfile.prod \
+  -t nejek16/ridejournal:0.0.1 \
+  -t nejek16/ridejournal:latest \
+  .. 
+```
+
+Push to Docker Hub:
+```
+docker push "nejek16/ridejournal:0.0.1"
+docker push "nejek16/ridejournal:latest"
+```
+
+### Creating the OAuth Client ID
+
+1. Open the [Google Cloud Console](https://console.cloud.google.com/) and create a project (or pick an existing one).
+2. Go to **APIs & Services → OAuth consent screen**, configure it (External, app name, support email), and add yourself as a test user while in *Testing* mode.
+3. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**.
+4. Create the client IDs needed by the mobile app (see the [app README](../app/README.md#google-sign-in-setup) for the platform-specific list):
+   - **Android** OAuth client — needs the app's package name and the SHA-1 fingerprint of the signing key.
+   - **iOS** OAuth client — needs the app's bundle identifier.
+   - **Web application** OAuth client — used as the `serverClientId` so all platforms produce ID tokens with the same audience. Recommended for a unified backend check.
+5. Copy the Client ID of whichever OAuth client the app uses as its `serverClientId` (the Web application client is the typical choice) into `appsettings.Development.json`:
+
+   ```json
+   "GoogleAuth": {
+     "ClientId": "1234567890-xxxxxxxxxxxx.apps.googleusercontent.com"
+   }
+   ```
+
+   Or via environment variable:
+
+   ```bash
+   export GoogleAuth__ClientId="1234567890-xxxxxxxxxxxx.apps.googleusercontent.com"
+   ```
+
+> **Important:** the value here must equal the `aud` claim that Google will put on the ID tokens the app sends. If the app passes `serverClientId` to `GoogleSignIn`, this should be that Web client ID. If the app only passes `clientId` (iOS), this should be the iOS client ID. Mismatch → backend rejects all Google logins.
