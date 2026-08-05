@@ -40,10 +40,43 @@ public class RideCrudHandlerTests
 
         var result = await handler.Handle(new CreateRideCommand(request, "user-1"), CancellationToken.None);
 
-        result.Id.Should().Be("ride-1");
-        result.Name.Should().Be("Test Ride");
-        result.UserId.Should().Be("user-1");
+        result.Created.Should().BeTrue();
+        result.Ride.Id.Should().Be("ride-1");
+        result.Ride.Name.Should().Be("Test Ride");
+        result.Ride.UserId.Should().Be("user-1");
         _rideRepo.Verify(r => r.CreateAsync(It.IsAny<Ride>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateRide_Should_Be_Idempotent_For_Same_Owner()
+    {
+        // Retrying an upload after an ambiguous timeout must not fail: the id is
+        // client-generated, and this used to surface as a duplicate-key 500.
+        var handler = new CreateRideCommandHandler(_rideRepo.Object, _mapper);
+        _rideRepo.Setup(r => r.GetByIdIncludingDeletedAsync("ride-1"))
+            .ReturnsAsync(new Ride { Id = "ride-1", UserId = "user-1", Name = "Stored Ride" });
+
+        var request = new CreateRideRequest { Id = "ride-1", Name = "Retry Ride" };
+        var result = await handler.Handle(new CreateRideCommand(request, "user-1"), CancellationToken.None);
+
+        result.Created.Should().BeFalse();
+        result.Ride.Name.Should().Be("Stored Ride");
+        _rideRepo.Verify(r => r.CreateAsync(It.IsAny<Ride>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateRide_Should_Conflict_When_Id_Belongs_To_Another_User()
+    {
+        var handler = new CreateRideCommandHandler(_rideRepo.Object, _mapper);
+        _rideRepo.Setup(r => r.GetByIdIncludingDeletedAsync("ride-1"))
+            .ReturnsAsync(new Ride { Id = "ride-1", UserId = "other-user" });
+
+        var act = () => handler.Handle(
+            new CreateRideCommand(new CreateRideRequest { Id = "ride-1", Name = "Mine" }, "user-1"),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>();
+        _rideRepo.Verify(r => r.CreateAsync(It.IsAny<Ride>()), Times.Never);
     }
 
     [Fact]
@@ -64,7 +97,7 @@ public class RideCrudHandlerTests
     public async Task DeleteRide_Should_Throw_When_Not_Owner()
     {
         var handler = new DeleteRideCommandHandler(_rideRepo.Object);
-        _rideRepo.Setup(r => r.GetByIdAsync("ride-1"))
+        _rideRepo.Setup(r => r.GetByIdIncludingDeletedAsync("ride-1"))
             .ReturnsAsync(new Ride { Id = "ride-1", UserId = "other-user" });
 
         var act = () => handler.Handle(new DeleteRideCommand("ride-1", "user-1"), CancellationToken.None);
@@ -72,14 +105,31 @@ public class RideCrudHandlerTests
     }
 
     [Fact]
-    public async Task DeleteRide_Should_Delete_When_Owner()
+    public async Task DeleteRide_Should_SoftDelete_When_Owner()
     {
         var handler = new DeleteRideCommandHandler(_rideRepo.Object);
-        _rideRepo.Setup(r => r.GetByIdAsync("ride-1"))
+        _rideRepo.Setup(r => r.GetByIdIncludingDeletedAsync("ride-1"))
             .ReturnsAsync(new Ride { Id = "ride-1", UserId = "user-1" });
 
         await handler.Handle(new DeleteRideCommand("ride-1", "user-1"), CancellationToken.None);
-        _rideRepo.Verify(r => r.DeleteAsync("ride-1"), Times.Once);
+        _rideRepo.Verify(r => r.SoftDeleteAsync("ride-1"), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteRide_Should_Be_Idempotent_When_Already_Deleted()
+    {
+        // A client retrying a delete it already completed must not get a 404.
+        var handler = new DeleteRideCommandHandler(_rideRepo.Object);
+        _rideRepo.Setup(r => r.GetByIdIncludingDeletedAsync("ride-1"))
+            .ReturnsAsync(new Ride
+            {
+                Id = "ride-1",
+                UserId = "user-1",
+                DeletedAt = DateTime.UtcNow.AddMinutes(-5)
+            });
+
+        await handler.Handle(new DeleteRideCommand("ride-1", "user-1"), CancellationToken.None);
+        _rideRepo.Verify(r => r.SoftDeleteAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

@@ -82,13 +82,13 @@ Values live in `.env` for local dev and `.env.prod` for production builds.
 | `API_BASE_URL`     | Backend API base URL   | **No default** — an unset value fails loudly at startup rather than silently failing every request |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | _(empty)_                                |
 
-The dev API listens on **port 5160** (`backend-api/.../launchSettings.json`).
+The dev API listens on **port 5000** (`backend-api/.../launchSettings.json`).
 
 | Target                     | File            | `API_BASE_URL`                    |
 | -------------------------- | --------------- | --------------------------------- |
-| Web / iOS simulator        | `.env`          | `http://localhost:5160`           |
-| Android emulator           | `.env.android`  | `http://10.0.2.2:5160`            |
-| Physical device on the LAN | `.env.device`   | `http://<your-machine-ip>:5160`   |
+| Web / iOS simulator        | `.env`          | `http://localhost:5000`           |
+| Android emulator           | `.env.android`  | `http://10.0.2.2:5000`            |
+| Physical device on the LAN | `.env.device`   | `http://<your-machine-ip>:5000`   |
 | Production                 | `.env.prod`     | `https://ride.kozjek.dev`         |
 
 ```bash

@@ -25,8 +25,15 @@ public static class MongoDbIndexInitializer
         {
             new CreateIndexModel<Ride>(
                 Builders<Ride>.IndexKeys.Ascending(r => r.UserId)),
+            // Backs the sync pull, which filters and sorts on the server clock.
             new CreateIndexModel<Ride>(
-                Builders<Ride>.IndexKeys.Ascending(r => r.UserId).Ascending(r => r.UpdatedAt)),
+                Builders<Ride>.IndexKeys.Ascending(r => r.UserId).Ascending(r => r.ServerUpdatedAt)),
+            // Backs every live read, which also filters out tombstones.
+            new CreateIndexModel<Ride>(
+                Builders<Ride>.IndexKeys
+                    .Ascending(r => r.UserId)
+                    .Ascending(r => r.DeletedAt)
+                    .Ascending(r => r.ServerUpdatedAt)),
             new CreateIndexModel<Ride>(
                 Builders<Ride>.IndexKeys.Ascending(r => r.Visibility).Descending(r => r.StartTime))
         });

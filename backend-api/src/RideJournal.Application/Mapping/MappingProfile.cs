@@ -12,9 +12,14 @@ public class MappingProfile : Profile
         // User -> UserDto
         CreateMap<User, UserDto>();
 
-        // Ride <-> RideDto
+        // Ride <-> RideDto.
+        // ServerUpdatedAt and DeletedAt are server-owned: the repository stamps the
+        // former on every write and the handlers manage the latter, so an inbound
+        // DTO must never set them.
         CreateMap<Ride, RideDto>();
-        CreateMap<RideDto, Ride>();
+        CreateMap<RideDto, Ride>()
+            .ForMember(dest => dest.ServerUpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedAt, opt => opt.Ignore());
 
         // RoutePoint <-> RoutePointDto
         CreateMap<RoutePoint, RoutePointDto>();
@@ -24,6 +29,8 @@ public class MappingProfile : Profile
         CreateMap<CreateRideRequest, Ride>()
             .ForMember(dest => dest.UserId, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.ServerUpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedAt, opt => opt.Ignore());
     }
 }

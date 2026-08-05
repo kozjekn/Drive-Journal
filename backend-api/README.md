@@ -24,7 +24,9 @@ This starts a local MongoDB instance on port `27017`.
 dotnet run --project src/RideJournal.API
 ```
 
-The API starts at `http://localhost:5000` by default (configured in launch profile).
+The API listens on `http://0.0.0.0:5000` (see `src/RideJournal.API/Properties/launchSettings.json`).
+It binds all interfaces so an emulator or a phone on the same network can reach it —
+use `http://10.0.2.2:5000` from the Android emulator and `http://<your-machine-ip>:5000` from a device.
 
 ### 3. Open Swagger UI
 
@@ -71,6 +73,53 @@ src/
 tests/
 └── RideJournal.Tests          # Unit + integration tests
 ```
+
+## Ride sync
+
+Clients are offline-first: a ride is written locally, then pushed. `POST /api/rides/sync`
+is the single push/pull path.
+
+**Request** — `{ "lastSyncAt": DateTime?, "rides": RideDto[] }`
+**Response** — `{ "syncedAt": DateTime, "updatedRides": RideDto[], "deletedRideIds": string[], "hasMore": bool }`
+
+Two timestamps, deliberately distinct:
+
+- **`updatedAt`** is the *client's* logical version. Conflicts resolve to the later
+  `updatedAt`. Clients send UTC (`...Z`).
+- **`serverUpdatedAt`** is stamped by the repository on every write and is the pull
+  cursor. Filtering the pull on `updatedAt` would drop rides whenever a device's
+  clock disagreed with the server's.
+
+`syncedAt` is what the client sends back as `lastSyncAt`. When a pull is truncated
+(`hasMore: true`, batch size 50) it is the **last returned ride's**
+`serverUpdatedAt`, not "now", so paging cannot skip a ride written mid-sequence.
+
+Other contract guarantees:
+
+- `POST /api/rides` is **idempotent** — replaying a client-generated id you own
+  returns `200` with the stored ride. A duplicate id owned by someone else is `409`.
+- `DELETE /api/rides/{id}` **soft-deletes** (sets `deletedAt`) so the deletion can
+  reach other devices via `deletedRideIds`, and is idempotent (`204` when already
+  deleted). Every read filters tombstones out.
+- A stale client cannot resurrect a deleted ride: a push whose `updatedAt` predates
+  the deletion is ignored.
+- Request caps: 50 rides per sync, 200k route points per ride, 64 MB body.
+
+### Migrating an existing database
+
+`ServerUpdatedAt` is new, so backfill it once or pre-existing rides will never be
+pulled by a client:
+
+```bash
+mongosh "mongodb://localhost:27017/ride_journal_dev" --eval '
+  db.rides.updateMany({ServerUpdatedAt: {$exists: false}},
+                      [{$set: {ServerUpdatedAt: "$UpdatedAt"}}])'
+```
+
+> Field names in MongoDB are **PascalCase** — no camelCase element convention is
+> registered, so the driver uses the C# property names verbatim (`UserId`, `StartTime`,
+> `RoutePoints`, …). Only `_id` is remapped. The JSON API is camelCase; the database
+> is not. A camelCase query silently matches nothing.
 
 ## Production
 
