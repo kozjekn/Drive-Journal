@@ -82,15 +82,17 @@ class RideModel extends Ride {
       avgSpeedKmh: (json['avgSpeedKmh'] as num).toDouble(),
       maxSpeedKmh: (json['maxSpeedKmh'] as num).toDouble(),
       elevationGainMeters: (json['elevationGainMeters'] as num).toDouble(),
-      startTime: DateTime.parse(json['startTime'] as String),
+      // .toLocal(): the server sends UTC, and without this every ride would
+      // render in UTC on the receiving device.
+      startTime: DateTime.parse(json['startTime'] as String).toLocal(),
       endTime: json['endTime'] != null
-          ? DateTime.parse(json['endTime'] as String)
+          ? DateTime.parse(json['endTime'] as String).toLocal()
           : null,
       routePoints: routePointsList,
       visibility: _parseVisibility(json['visibility']),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String).toLocal(),
       syncedAt: json['syncedAt'] != null
-          ? DateTime.parse(json['syncedAt'] as String)
+          ? DateTime.parse(json['syncedAt'] as String).toLocal()
           : null,
     );
   }
@@ -115,6 +117,14 @@ class RideModel extends Ride {
     };
   }
 
+  /// Wire format. All timestamps are UTC with a trailing `Z`.
+  ///
+  /// Sending local time with no offset made the server parse it as `Unspecified`
+  /// and compare it against `DateTime.UtcNow` — and sync conflict resolution is
+  /// built entirely on these timestamps.
+  ///
+  /// `syncedAt` is deliberately omitted (device-local state) and so is `userId`
+  /// (server-authoritative, taken from the JWT).
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -124,13 +134,13 @@ class RideModel extends Ride {
       'avgSpeedKmh': avgSpeedKmh,
       'maxSpeedKmh': maxSpeedKmh,
       'elevationGainMeters': elevationGainMeters,
-      'startTime': startTime.toIso8601String(),
-      'endTime': endTime?.toIso8601String(),
+      'startTime': startTime.toUtc().toIso8601String(),
+      'endTime': endTime?.toUtc().toIso8601String(),
       'routePoints': routePoints
           .map((p) => RoutePointModel.fromEntity(p).toJson())
           .toList(),
       'visibility': _visibilityToString(visibility),
-      'updatedAt': updatedAt.toIso8601String(),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
     };
   }
 

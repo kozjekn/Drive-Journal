@@ -1,9 +1,13 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:ride_journal/core/services/location_service.dart';
 import 'package:ride_journal/core/utils/format_utils.dart';
+import 'package:ride_journal/di/injection.dart';
 import 'package:ride_journal/presentation/providers/record_ride_provider.dart';
+import 'package:ride_journal/presentation/widgets/web_recording_notice.dart';
 
 class RecordRidePage extends StatelessWidget {
   const RecordRidePage({super.key});
@@ -32,22 +36,37 @@ class RecordRidePage extends StatelessWidget {
           },
         ),
       ),
-      body: Consumer<RecordRideProvider>(
-        builder: (context, provider, _) {
-          return Column(
-            children: [
-              // Live map
-              Expanded(child: _LiveMap(provider: provider)),
+      body: Column(
+        children: [
+          // The map is intentionally OUTSIDE the Consumer below: it subscribes to
+          // the provider itself, so the 1-second duration tick no longer rebuilds
+          // the whole FlutterMap subtree.
+          const Expanded(child: _LiveMap()),
 
-              // Stats bar
-              if (provider.state == RecordingState.recording)
-                _StatsBar(provider: provider),
+          Consumer<RecordRideProvider>(
+            builder: (context, provider, _) {
+              return Column(
+                children: [
+                  if (provider.warning != null)
+                    _WarningBanner(
+                      message: provider.warning!,
+                      onDismiss: provider.clearWarning,
+                    ),
 
-              // Control button
-              _ControlButton(provider: provider),
-            ],
-          );
-        },
+                  // Web can't track with the screen off. Say so, truthfully,
+                  // based on whether the wake lock is actually held.
+                  if (kIsWeb && provider.state == RecordingState.recording)
+                    WebWakeLockStrip(held: provider.wakeLockHeld),
+
+                  if (provider.state == RecordingState.recording)
+                    _StatsBar(provider: provider),
+
+                  _ControlButton(provider: provider),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -77,56 +96,198 @@ class RecordRidePage extends StatelessWidget {
   }
 }
 
-class _LiveMap extends StatelessWidget {
-  final RecordRideProvider provider;
+/// The live tracking map.
+///
+/// Stateful and owning a [MapController], because `MapOptions.initialCenter` is
+/// read exactly once when flutter_map creates its state — the previous
+/// stateless version recomputed a centre on every rebuild and threw it away,
+/// leaving the camera pinned wherever it started.
+class _LiveMap extends StatefulWidget {
+  const _LiveMap();
 
-  const _LiveMap({required this.provider});
+  @override
+  State<_LiveMap> createState() => _LiveMapState();
+}
+
+class _LiveMapState extends State<_LiveMap> {
+  static const LatLng _fallbackCenter = LatLng(46.0569, 14.5058); // Ljubljana
+  static const double _followZoom = 16.0;
+
+  final MapController _mapController = MapController();
+
+  /// Auto-follow, disabled as soon as the user pans so the camera stops
+  /// fighting them, and restored by the re-centre button.
+  bool _following = true;
+  bool _mapReady = false;
+  LatLng? _initialCenter;
+  LatLng? _lastCentered;
+
+  @override
+  void initState() {
+    super.initState();
+    _seedInitialCenter();
+  }
+
+  /// Opens the map on the rider's actual position instead of the hardcoded
+  /// fallback. The provider's stream has not produced a fix yet at this point.
+  Future<void> _seedInitialCenter() async {
+    final provider = context.read<RecordRideProvider>();
+    final known = provider.lastPosition;
+    if (known != null) {
+      setState(() =>
+          _initialCenter = LatLng(known.latitude, known.longitude));
+      return;
+    }
+    try {
+      final position = await sl<LocationService>().getCurrentPosition();
+      if (!mounted) return;
+      setState(() =>
+          _initialCenter = LatLng(position.latitude, position.longitude));
+    } catch (_) {
+      // No fix available (permission not granted yet, indoors, web prompt
+      // pending). Stay on the fallback; the stream will move us once it starts.
+      if (!mounted) return;
+      setState(() => _initialCenter ??= _fallbackCenter);
+    }
+  }
+
+  void _recenter(LatLng target) {
+    if (!_mapReady) return;
+    // Skip no-op moves so a stationary rider doesn't churn the camera.
+    if (_lastCentered == target) return;
+    _lastCentered = target;
+    _mapController.move(target, _mapController.camera.zoom);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<RecordRideProvider>();
+
     final points = provider.routePoints
         .map((p) => LatLng(p.latitude, p.longitude))
         .toList();
 
-    final center = points.isNotEmpty
-        ? points.last
-        : const LatLng(46.0569, 14.5058); // Default: Ljubljana
+    // Driven by the live position, not the thinned track, so the marker and
+    // camera keep up even while points are being dropped.
+    final live = provider.lastPosition;
+    final livePoint = live != null
+        ? LatLng(live.latitude, live.longitude)
+        : (points.isNotEmpty ? points.last : null);
 
-    return FlutterMap(
-      options: MapOptions(initialCenter: center, initialZoom: 15),
+    if (_following && livePoint != null) {
+      // Camera moves are side effects; defer past this build.
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _recenter(livePoint));
+    }
+
+    return Stack(
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.ridejournal.ride_journal',
-        ),
-        if (points.length >= 2)
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: points,
-                strokeWidth: 4.0,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ],
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _initialCenter ?? _fallbackCenter,
+            initialZoom: _followZoom,
+            keepAlive: true,
+            onMapReady: () => _mapReady = true,
+            onPositionChanged: (camera, hasGesture) {
+              if (hasGesture && _following) {
+                setState(() => _following = false);
+              }
+            },
           ),
-        if (points.isNotEmpty)
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: points.last,
-                width: 24,
-                height: 24,
-                child: Container(
-                  decoration: BoxDecoration(
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'dev.kozjek.ride',
+            ),
+            if (points.length >= 2)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: points,
+                    strokeWidth: 4.0,
                     color: Theme.of(context).colorScheme.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
                   ),
-                ),
+                ],
               ),
-            ],
+            if (livePoint != null)
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: livePoint,
+                    width: 24,
+                    height: 24,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+
+        if (!_following)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.small(
+              heroTag: 'recenter',
+              tooltip: 'Center on my location',
+              onPressed: () {
+                setState(() => _following = true);
+                if (livePoint != null) {
+                  _lastCentered = null; // force the move
+                  _recenter(livePoint);
+                }
+              },
+              child: const Icon(Icons.my_location),
+            ),
           ),
       ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+}
+
+class _WarningBanner extends StatelessWidget {
+  final String message;
+  final VoidCallback onDismiss;
+
+  const _WarningBanner({required this.message, required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: Colors.orange.shade900,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber, size: 18, color: Colors.white),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16, color: Colors.white),
+            visualDensity: VisualDensity.compact,
+            onPressed: onDismiss,
+            tooltip: 'Dismiss',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -199,21 +360,42 @@ class _ControlButton extends StatelessWidget {
     );
   }
 
+  Future<void> _start(BuildContext context) async {
+    // One-time explanation of the browser's screen-off limitation before the
+    // first web recording.
+    if (kIsWeb && !await WebRecordingNotice.hasAcknowledged()) {
+      if (!context.mounted) return;
+      final proceed = await WebRecordingNotice.show(context);
+      if (!proceed || !context.mounted) return;
+    }
+    await provider.startRecording();
+  }
+
   Widget _buildButton(BuildContext context) {
     switch (provider.state) {
       case RecordingState.idle:
         return ElevatedButton.icon(
-          onPressed: () => provider.startRecording(),
+          onPressed: () => _start(context),
           icon: const Icon(Icons.play_arrow, size: 28),
           label: const Text('Start Ride', style: TextStyle(fontSize: 18)),
         );
       case RecordingState.recording:
         return ElevatedButton.icon(
           onPressed: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            final navigator = Navigator.of(context);
             final ride = await provider.stopRecording();
-            if (ride != null && context.mounted) {
-              Navigator.of(context).pop();
-            }
+            if (ride == null) return;
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  ride.isPendingSync
+                      ? 'Ride saved — will upload when you\'re online'
+                      : 'Ride saved and uploaded',
+                ),
+              ),
+            );
+            navigator.pop();
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.error,
@@ -225,7 +407,7 @@ class _ControlButton extends StatelessWidget {
         return const Center(child: CircularProgressIndicator());
       case RecordingState.error:
         return ElevatedButton.icon(
-          onPressed: () => provider.startRecording(),
+          onPressed: () => _start(context),
           icon: const Icon(Icons.refresh, size: 28),
           label: Text(
             provider.error ?? 'Error - Tap to retry',

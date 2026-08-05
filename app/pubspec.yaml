@@ -31,6 +31,13 @@ dependencies:
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
 
+  # Screen wake lock. The only lever available on web: a PWA cannot read GPS while
+  # the page is hidden, so we keep the screen from turning off instead.
+  # Held at <1.6.1: from 1.6.1 it needs win32 ^6, which conflicts with
+  # flutter_secure_storage 9.x (win32 ^5). Only affects the Windows target, which we
+  # don't ship. Bump both together if Windows ever matters.
+  wakelock_plus: ^1.5.2
+
   # HTTP / API
   dio: ^5.7.0
   flutter_secure_storage: ^9.2.4

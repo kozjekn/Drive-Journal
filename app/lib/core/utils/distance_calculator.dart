@@ -10,15 +10,17 @@ class DistanceCalculator {
 
     var total = 0.0;
     for (var i = 0; i < points.length - 1; i++) {
-      total += _haversine(
-        points[i].latitude,
-        points[i].longitude,
-        points[i + 1].latitude,
-        points[i + 1].longitude,
-      );
+      total += between(points[i], points[i + 1]);
     }
     return total;
   }
+
+  /// Distance in meters between two route points.
+  ///
+  /// Used incrementally while recording, so the live distance does not need an
+  /// O(n) pass over the whole track on every GPS fix.
+  static double between(RoutePoint a, RoutePoint b) =>
+      _haversine(a.latitude, a.longitude, b.latitude, b.longitude);
 
   /// Haversine formula to calculate distance between two GPS coordinates.
   /// Returns distance in meters.

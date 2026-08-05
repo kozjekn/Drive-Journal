@@ -54,6 +54,19 @@ class RideCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (ride.isPendingSync) ...[
+                      // Makes a failed upload self-diagnosing instead of silent.
+                      Tooltip(
+                        message: 'Not uploaded yet',
+                        child: Icon(
+                          Icons.cloud_off,
+                          size: 14,
+                          semanticLabel: 'Not uploaded yet',
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                     Text(
                       FormatUtils.formatDate(ride.startTime),
                       style: theme.textTheme.bodySmall,

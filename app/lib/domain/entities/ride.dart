@@ -36,6 +36,19 @@ class Ride extends Equatable {
 
   bool get isActive => endTime == null;
 
+  /// True when this ride has local changes the server has not acknowledged.
+  ///
+  /// Both timestamps come from the same device clock, so this is unaffected by
+  /// any skew against the server: [syncedAt] is set to the pushed [updatedAt] on
+  /// success, never to `DateTime.now()`.
+  bool get isPendingSync =>
+      syncedAt == null || updatedAt.isAfter(syncedAt!);
+
+  /// Distinguishes "not passed" from "explicitly set to null" for nullable
+  /// fields, so [copyWith] can clear [endTime] / [syncedAt] instead of only ever
+  /// setting them.
+  static const Object _unset = Object();
+
   Ride copyWith({
     String? id,
     String? name,
@@ -45,11 +58,11 @@ class Ride extends Equatable {
     double? maxSpeedKmh,
     double? elevationGainMeters,
     DateTime? startTime,
-    DateTime? endTime,
+    Object? endTime = _unset,
     List<RoutePoint>? routePoints,
     RideVisibility? visibility,
     DateTime? updatedAt,
-    DateTime? syncedAt,
+    Object? syncedAt = _unset,
   }) {
     return Ride(
       id: id ?? this.id,
@@ -60,11 +73,11 @@ class Ride extends Equatable {
       maxSpeedKmh: maxSpeedKmh ?? this.maxSpeedKmh,
       elevationGainMeters: elevationGainMeters ?? this.elevationGainMeters,
       startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
+      endTime: endTime == _unset ? this.endTime : endTime as DateTime?,
       routePoints: routePoints ?? this.routePoints,
       visibility: visibility ?? this.visibility,
       updatedAt: updatedAt ?? this.updatedAt,
-      syncedAt: syncedAt ?? this.syncedAt,
+      syncedAt: syncedAt == _unset ? this.syncedAt : syncedAt as DateTime?,
     );
   }
 

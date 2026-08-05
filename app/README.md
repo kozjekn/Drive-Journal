@@ -77,10 +77,27 @@ Config is baked in at build time via `--dart-define-from-file` (read by
 [lib/core/config/env_config.dart](lib/core/config/env_config.dart) with `String.fromEnvironment`).
 Values live in `.env` for local dev and `.env.prod` for production builds.
 
-| Variable           | Description            | Default                 |
-| ------------------ | ---------------------- | ----------------------- |
-| `API_BASE_URL`     | Backend API base URL   | `http://localhost:5000` |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID | _(empty)_               |
+| Variable           | Description            | Notes                                    |
+| ------------------ | ---------------------- | ---------------------------------------- |
+| `API_BASE_URL`     | Backend API base URL   | **No default** — an unset value fails loudly at startup rather than silently failing every request |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | _(empty)_                                |
+
+The dev API listens on **port 5160** (`backend-api/.../launchSettings.json`).
+
+| Target                     | File            | `API_BASE_URL`                    |
+| -------------------------- | --------------- | --------------------------------- |
+| Web / iOS simulator        | `.env`          | `http://localhost:5160`           |
+| Android emulator           | `.env.android`  | `http://10.0.2.2:5160`            |
+| Physical device on the LAN | `.env.device`   | `http://<your-machine-ip>:5160`   |
+| Production                 | `.env.prod`     | `https://ride.kozjek.dev`         |
+
+```bash
+flutter run -d chrome         --dart-define-from-file=.env
+flutter run -d emulator-5554  --dart-define-from-file=.env.android
+```
+
+Debug Android builds set `usesCleartextTraffic` so plain-HTTP dev endpoints work;
+release builds are HTTPS-only.
 
 ### Run
 
@@ -98,7 +115,7 @@ flutter run --dart-define-from-file=.env
 
    | Type | Required input | Used for |
    | ---- | -------------- | -------- |
-   | **Android** | Package name (`com.drivejournal.drive_journal`) + SHA-1 of your signing key | Android native sign-in |
+   | **Android** | Package name (`dev.kozjek.ride`) + SHA-1 of your signing key | Android native sign-in |
    | **iOS** | iOS bundle identifier (see `ios/Runner.xcodeproj`) | iOS native sign-in |
    | **Web application** | (no extra config) | `serverClientId` — the audience the backend expects |
 
@@ -234,15 +251,48 @@ In Xcode: `Product > Archive`, then distribute via App Store Connect or export a
 
 ## Platform Configuration
 
+Application id / bundle id is `dev.kozjek.ride` on every platform.
+
 ### Android
 
-- Location permissions (fine, coarse, background) in `AndroidManifest.xml`
-- Foreground service permission for background GPS tracking
+- `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `FOREGROUND_SERVICE`,
+  `FOREGROUND_SERVICE_LOCATION`, `WAKE_LOCK`, `POST_NOTIFICATIONS`
+- Screen-off tracking works via geolocator's `foregroundServiceType="location"`
+  service, started while the app is visible. `ACCESS_BACKGROUND_LOCATION` is
+  deliberately **not** declared: it isn't needed for this model, it triggers a
+  Play Store policy review, and it makes Android 11+ silently discard the runtime
+  location request.
+- `WAKE_LOCK` is required — the foreground service acquires a `PARTIAL_WAKE_LOCK`
+  and the plugin does not declare the permission itself.
+- The foreground-service notification is always silent and minimized; geolocator
+  hardcodes `IMPORTANCE_NONE` on its channel.
 
 ### iOS
 
-- `NSLocationWhenInUseUsageDescription` and `NSLocationAlwaysAndWhenInUseUsageDescription` in `Info.plist`
-- `UIBackgroundModes: location` for background tracking
+- `NSLocationWhenInUseUsageDescription` plus `UIBackgroundModes: location`. "When
+  In Use" is sufficient for screen-locked tracking started in the foreground;
+  "Always" is not needed, so the `NSLocationAlways*` keys are not declared.
+
+### Web / PWA
+
+**A PWA cannot track with the screen off.** No browser API can read GPS while the
+document is hidden: service workers have no `navigator.geolocation` at all, and
+Background Sync / Periodic Background Sync are Chromium-only, absent from Safari,
+and run in the worker regardless. The app holds a Screen Wake Lock while recording
+and says so in the UI; that is the entire mitigation.
+
+- Geolocation and Screen Wake Lock both require a **secure context**.
+  `http://localhost` qualifies; a LAN IP over plain HTTP does not.
+- On an **installed iOS PWA below iOS 18.4** the wake lock is a silent no-op
+  (Apple bug). The recording UI reports the verified lock state, so it says
+  "Can't keep your screen awake on this device" rather than claiming success.
+
+### Process kill
+
+Neither native platform survives a process kill (swipe-away, OS/OEM kill). An
+in-progress recording is flushed to a separate append-only Hive box every 10
+points / 15 seconds and on every backgrounding, so a kill costs seconds rather
+than the whole ride; the ride list then offers Resume / Save as-is / Discard.
 
 ## TODOs / Future Work
 
@@ -251,4 +301,10 @@ In Xcode: `Product > Archive`, then distribute via App Store Connect or export a
 - **User settings** — units (km/mi), map style, recording interval
 - **Push notifications** — notify when followed users post new rides
 - **Ride photos** — attach photos to rides
-- **Offline queue** — queue failed API calls for retry when connectivity returns
+- **Kill-proof tracking** — surviving a process kill needs a second FlutterEngine
+  in a standalone service (`flutter_background_geolocation` or hand-rolled)
+- **Connectivity-triggered sync** — sync currently retries on app resume, save,
+  and pull-to-refresh; a `connectivity_plus` listener would retry the moment the
+  network returns
+- **Ride list payload** — `GET /api/rides` returns every ride with all route
+  points inline and has no pagination

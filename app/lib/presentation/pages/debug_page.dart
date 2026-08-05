@@ -1,8 +1,13 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:ride_journal/core/config/env_config.dart';
+import 'package:ride_journal/core/services/location_service.dart';
+import 'package:ride_journal/core/services/screen_wake_service.dart';
+import 'package:ride_journal/di/injection.dart';
+import 'package:ride_journal/domain/repositories/ride_repository.dart';
 
 class DebugPage extends StatefulWidget {
   const DebugPage({super.key});
@@ -18,6 +23,14 @@ class _DebugPageState extends State<DebugPage> {
   Position? _lastPosition;
   bool _streamActive = false;
 
+  final LocationService _locationService = sl<LocationService>();
+  final ScreenWakeService _wakeService = sl<ScreenWakeService>();
+  final RideRepository _rideRepository = sl<RideRepository>();
+
+  static String get _platformLabel => kIsWeb
+      ? 'web (${defaultTargetPlatform.name} host)'
+      : defaultTargetPlatform.name;
+
   @override
   void initState() {
     super.initState();
@@ -31,23 +44,28 @@ class _DebugPageState extends State<DebugPage> {
   }
 
   void _addLog(String message, {bool isError = false}) {
+    if (!mounted) return;
     setState(() {
       _log.insert(0, _LogEntry(message: message, isError: isError));
     });
   }
 
   Future<void> _runInitialChecks() async {
-    _addLog('Platform: ${Platform.operatingSystem} ${Platform.operatingSystemVersion}');
+    _addLog('Platform: $_platformLabel');
+    _addLog('Capabilities: ${_locationService.capabilities}');
+    _addLog(
+      'API base URL: ${EnvConfig.isConfigured ? EnvConfig.apiBaseUrl : "(NOT CONFIGURED)"}',
+      isError: !EnvConfig.isConfigured,
+    );
 
-    // Check location service
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      _addLog('Location service enabled: $serviceEnabled', isError: !serviceEnabled);
+      _addLog('Location service enabled: $serviceEnabled',
+          isError: !serviceEnabled);
     } catch (e) {
       _addLog('Location service check failed: $e', isError: true);
     }
 
-    // Check permission
     try {
       final permission = await Geolocator.checkPermission();
       _addLog('Current permission: ${permission.name}',
@@ -56,28 +74,62 @@ class _DebugPageState extends State<DebugPage> {
     } catch (e) {
       _addLog('Permission check failed: $e', isError: true);
     }
+
+    await _reportWakelock();
+    await _reportSync();
+  }
+
+  Future<void> _reportWakelock() async {
+    final held = await _wakeService.isHeld;
+    _addLog('Screen wake lock held: $held');
+  }
+
+  Future<void> _reportSync() async {
+    try {
+      final status = await _rideRepository.syncStatus();
+      _addLog(
+        'Sync — pending: ${status.pendingRideIds.length} '
+        '${status.pendingRideIds}, tombstones: ${status.tombstoneIds.length} '
+        '${status.tombstoneIds}, lastSyncAt: ${status.lastSyncAt}, '
+        'owner: ${status.ridesOwnerUserId}',
+        isError: status.pendingRideIds.isNotEmpty,
+      );
+    } catch (e) {
+      _addLog('Sync status read failed: $e', isError: true);
+    }
+  }
+
+  Future<void> _forceSync() async {
+    _addLog('Forcing sync...');
+    try {
+      final outcome = await _rideRepository.syncRides();
+      _addLog(
+        'Sync result: pushed ${outcome.pushed}, pulled ${outcome.pulled}, '
+        'deleted ${outcome.deleted}'
+        '${outcome.error != null ? ", error: ${outcome.error}" : ""}',
+        isError: !outcome.succeeded,
+      );
+    } catch (e) {
+      _addLog('Sync threw: $e', isError: true);
+    }
+    await _reportSync();
   }
 
   Future<void> _requestPermission() async {
-    _addLog('Requesting permission...');
+    _addLog('Requesting permission via LocationService...');
     try {
-      final permission = await Geolocator.requestPermission();
-      _addLog('Permission result: ${permission.name}',
-          isError: permission == LocationPermission.denied ||
-              permission == LocationPermission.deniedForever);
+      await _locationService.ensurePermissions();
+      final permission = await Geolocator.checkPermission();
+      _addLog('Permission now: ${permission.name}');
     } catch (e) {
-      _addLog('Request permission failed: $e', isError: true);
+      _addLog('ensurePermissions failed: $e', isError: true);
     }
   }
 
   Future<void> _getCurrentPosition() async {
     _addLog('Getting current position...');
     try {
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.best,
-        ),
-      );
+      final position = await _locationService.getCurrentPosition();
       setState(() => _lastPosition = position);
       _addLog(
         'Position: ${position.latitude.toStringAsFixed(6)}, '
@@ -93,7 +145,7 @@ class _DebugPageState extends State<DebugPage> {
 
   void _startBasicStream() {
     _stopStream();
-    _addLog('Starting BASIC stream (LocationSettings, distanceFilter: 0)...');
+    _addLog('Starting BASIC stream (plain LocationSettings, distanceFilter 0)...');
     _positionCount = 0;
     _streamActive = true;
 
@@ -103,97 +155,59 @@ class _DebugPageState extends State<DebugPage> {
         distanceFilter: 0,
       ),
     ).listen(
-      (position) {
-        _positionCount++;
-        setState(() => _lastPosition = position);
-        _addLog(
-          '#$_positionCount | '
-          '${position.latitude.toStringAsFixed(6)}, '
-          '${position.longitude.toStringAsFixed(6)} '
-          '| spd: ${position.speed.toStringAsFixed(1)} '
-          '| acc: ${position.accuracy.toStringAsFixed(1)}m',
-        );
-      },
+      _onDebugPosition,
       onError: (dynamic error) {
         _addLog('Basic stream ERROR: $error', isError: true);
       },
       onDone: () {
         _addLog('Basic stream DONE (closed)');
-        setState(() => _streamActive = false);
+        if (mounted) setState(() => _streamActive = false);
       },
     );
 
     setState(() {});
   }
 
+  /// Exercises the *real* production settings via [LocationService], rather than
+  /// a local copy that would drift out of sync with it.
   void _startPlatformStream() {
     _stopStream();
-    _addLog('Starting PLATFORM stream (${Platform.operatingSystem} settings)...');
+    _addLog('Starting PLATFORM stream via LocationService ($_platformLabel)...');
     _positionCount = 0;
     _streamActive = true;
 
-    LocationSettings settings;
-    if (Platform.isAndroid) {
-      settings = AndroidSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 5,
-        forceLocationManager: false,
-        intervalDuration: const Duration(seconds: 2),
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationText: 'Debug: GPS stream active',
-          notificationTitle: 'Ride Tracker Debug',
-          enableWakeLock: true,
-        ),
-      );
-      _addLog('Using AndroidSettings with ForegroundNotificationConfig');
-    } else if (Platform.isIOS) {
-      settings = AppleSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 5,
-        activityType: ActivityType.automotiveNavigation,
-        pauseLocationUpdatesAutomatically: false,
-        showBackgroundLocationIndicator: true,
-        allowBackgroundLocationUpdates: true,
-      );
-      _addLog('Using AppleSettings');
-    } else {
-      settings = const LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 5,
-      );
-      _addLog('Using basic LocationSettings (unknown platform)');
-    }
-
     try {
-      _streamSub = Geolocator.getPositionStream(
-        locationSettings: settings,
-      ).listen(
-        (position) {
-          _positionCount++;
-          setState(() => _lastPosition = position);
-          _addLog(
-            '#$_positionCount | '
-            '${position.latitude.toStringAsFixed(6)}, '
-            '${position.longitude.toStringAsFixed(6)} '
-            '| spd: ${position.speed.toStringAsFixed(1)} '
-            '| acc: ${position.accuracy.toStringAsFixed(1)}m',
-          );
-        },
+      _streamSub = _locationService.positionStream().listen(
+        _onDebugPosition,
         onError: (dynamic error) {
           _addLog('Platform stream ERROR: $error', isError: true);
-          setState(() => _streamActive = false);
+          if (mounted) setState(() => _streamActive = false);
         },
         onDone: () {
           _addLog('Platform stream DONE (closed)');
-          setState(() => _streamActive = false);
+          if (mounted) setState(() => _streamActive = false);
         },
       );
+      _addLog('Capabilities after start: ${_locationService.capabilities}');
     } catch (e) {
       _addLog('Platform stream FAILED to start: $e', isError: true);
       setState(() => _streamActive = false);
     }
 
     setState(() {});
+  }
+
+  void _onDebugPosition(Position position) {
+    _positionCount++;
+    setState(() => _lastPosition = position);
+    _addLog(
+      '#$_positionCount | '
+      '${position.latitude.toStringAsFixed(6)}, '
+      '${position.longitude.toStringAsFixed(6)} '
+      '| spd: ${position.speed.toStringAsFixed(1)} '
+      '| acc: ${position.accuracy.toStringAsFixed(1)}m '
+      '| ts: ${position.timestamp.toIso8601String()}',
+    );
   }
 
   void _stopStream() {
@@ -216,10 +230,11 @@ class _DebugPageState extends State<DebugPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final caps = _locationService.capabilities;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GPS Diagnostics'),
+        title: const Text('Diagnostics'),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -245,13 +260,22 @@ class _DebugPageState extends State<DebugPage> {
                         color: _streamActive ? Colors.green : Colors.grey,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _streamActive
-                            ? 'Stream active — $_positionCount positions'
-                            : 'Stream inactive',
-                        style: theme.textTheme.titleMedium,
+                      Expanded(
+                        child: Text(
+                          _streamActive
+                              ? 'Stream active — $_positionCount positions'
+                              : 'Stream inactive',
+                          style: theme.textTheme.titleMedium,
+                        ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$_platformLabel · screen-off tracking: '
+                    '${caps.tracksWithScreenOff ? "yes" : "NO"} · '
+                    'foreground service: ${caps.hasForegroundService ? "yes" : "no"}',
+                    style: theme.textTheme.bodySmall,
                   ),
                   if (_lastPosition != null) ...[
                     const SizedBox(height: 8),
@@ -307,6 +331,24 @@ class _DebugPageState extends State<DebugPage> {
                   icon: Icons.stop,
                   onPressed: _streamActive ? _stopStream : null,
                   color: Colors.red,
+                ),
+                const SizedBox(width: 8),
+                _ActionChip(
+                  label: 'Wake Lock',
+                  icon: Icons.lightbulb_outline,
+                  onPressed: _reportWakelock,
+                ),
+                const SizedBox(width: 8),
+                _ActionChip(
+                  label: 'Sync Status',
+                  icon: Icons.cloud_queue,
+                  onPressed: _reportSync,
+                ),
+                const SizedBox(width: 8),
+                _ActionChip(
+                  label: 'Force Sync',
+                  icon: Icons.cloud_upload,
+                  onPressed: _forceSync,
                 ),
               ],
             ),

@@ -156,4 +156,136 @@ void main() {
       expect(entity.id, '1');
     });
   });
+
+  group('wire format (JSON)', () {
+    RideModel buildRide() => RideModel(
+          id: 'ride-1',
+          name: 'Morning Ride',
+          distanceMeters: 12400,
+          duration: const Duration(minutes: 42),
+          avgSpeedKmh: 17.7,
+          maxSpeedKmh: 38.2,
+          elevationGainMeters: 120,
+          startTime: DateTime(2026, 8, 3, 9, 15),
+          endTime: DateTime(2026, 8, 3, 9, 57),
+          routePoints: [
+            RoutePoint(
+              latitude: 46.0569,
+              longitude: 14.5058,
+              altitude: 295,
+              speed: 12.5,
+              timestamp: DateTime(2026, 8, 3, 9, 15),
+            ),
+          ],
+          updatedAt: DateTime(2026, 8, 3, 9, 57),
+          syncedAt: DateTime(2026, 8, 3, 10),
+        );
+
+    test('emits UTC timestamps with a trailing Z', () {
+      // Local time with no offset was parsed as Unspecified by the server and
+      // compared against DateTime.UtcNow, which is what sync ordering is built on.
+      final json = buildRide().toJson();
+
+      expect(json['startTime'] as String, endsWith('Z'));
+      expect(json['endTime'] as String, endsWith('Z'));
+      expect(json['updatedAt'] as String, endsWith('Z'));
+      expect(
+        (json['routePoints'] as List).first['timestamp'] as String,
+        endsWith('Z'),
+      );
+    });
+
+    test('omits device-local and server-owned fields', () {
+      final json = buildRide().toJson();
+
+      expect(json.containsKey('syncedAt'), isFalse);
+      expect(json.containsKey('userId'), isFalse);
+    });
+
+    test('round-trips through JSON back to local time', () {
+      final original = buildRide();
+      final decoded = RideModel.fromJson(original.toJson());
+
+      expect(decoded.id, original.id);
+      expect(decoded.startTime.isUtc, isFalse);
+      expect(decoded.startTime, original.startTime);
+      expect(decoded.endTime, original.endTime);
+      expect(decoded.updatedAt, original.updatedAt);
+      expect(
+        decoded.routePoints.single.timestamp,
+        original.routePoints.single.timestamp,
+      );
+      expect(decoded.distanceMeters, original.distanceMeters);
+    });
+
+    test('parses visibility from the server\'s string form', () {
+      final json = buildRide().toJson()..['visibility'] = 'Public';
+      expect(RideModel.fromJson(json).visibility, RideVisibility.public_);
+    });
+  });
+
+  group('Ride.isPendingSync', () {
+    Ride rideWith({DateTime? syncedAt, DateTime? updatedAt}) => Ride(
+          id: '1',
+          name: 'Ride',
+          distanceMeters: 0,
+          duration: Duration.zero,
+          avgSpeedKmh: 0,
+          maxSpeedKmh: 0,
+          elevationGainMeters: 0,
+          startTime: DateTime(2026, 8, 3, 9),
+          routePoints: const [],
+          updatedAt: updatedAt ?? DateTime(2026, 8, 3, 10),
+          syncedAt: syncedAt,
+        );
+
+    test('a never-synced ride is pending', () {
+      expect(rideWith().isPendingSync, isTrue);
+    });
+
+    test('a ride synced at its updatedAt is not pending', () {
+      final at = DateTime(2026, 8, 3, 10);
+      expect(rideWith(updatedAt: at, syncedAt: at).isPendingSync, isFalse);
+    });
+
+    test('a ride edited after its last sync is pending again', () {
+      expect(
+        rideWith(
+          updatedAt: DateTime(2026, 8, 3, 11),
+          syncedAt: DateTime(2026, 8, 3, 10),
+        ).isPendingSync,
+        isTrue,
+      );
+    });
+  });
+
+  group('Ride.copyWith', () {
+    Ride base() => Ride(
+          id: '1',
+          name: 'Ride',
+          distanceMeters: 0,
+          duration: Duration.zero,
+          avgSpeedKmh: 0,
+          maxSpeedKmh: 0,
+          elevationGainMeters: 0,
+          startTime: DateTime(2026, 8, 3, 9),
+          endTime: DateTime(2026, 8, 3, 10),
+          routePoints: const [],
+          updatedAt: DateTime(2026, 8, 3, 10),
+          syncedAt: DateTime(2026, 8, 3, 10),
+        );
+
+    test('preserves nullable fields when they are not passed', () {
+      final copy = base().copyWith(name: 'Renamed');
+      expect(copy.endTime, isNotNull);
+      expect(copy.syncedAt, isNotNull);
+    });
+
+    test('can clear nullable fields explicitly', () {
+      // `?? this.x` on every field meant these could only ever be set.
+      final copy = base().copyWith(endTime: null, syncedAt: null);
+      expect(copy.endTime, isNull);
+      expect(copy.syncedAt, isNull);
+    });
+  });
 }

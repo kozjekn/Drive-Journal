@@ -1,5 +1,6 @@
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ride_journal/core/config/env_config.dart';
+import 'package:ride_journal/core/network/api_client.dart';
 import 'package:ride_journal/data/datasources/local/auth_local_data_source.dart';
 import 'package:ride_journal/data/datasources/remote/auth_remote_data_source.dart';
 import 'package:ride_journal/domain/entities/auth_token.dart';
@@ -9,14 +10,17 @@ import 'package:ride_journal/domain/repositories/auth_repository.dart';
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
   final AuthLocalDataSource _localDataSource;
+  final ApiClient _apiClient;
   final GoogleSignIn _googleSignIn;
 
   AuthRepositoryImpl({
     required AuthRemoteDataSource remoteDataSource,
     required AuthLocalDataSource localDataSource,
+    required ApiClient apiClient,
     GoogleSignIn? googleSignIn,
   })  : _remoteDataSource = remoteDataSource,
         _localDataSource = localDataSource,
+        _apiClient = apiClient,
         _googleSignIn = googleSignIn ??
             GoogleSignIn(
               clientId: EnvConfig.googleClientId.isNotEmpty
@@ -77,8 +81,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> isAuthenticated() async {
     final token = await _localDataSource.getTokens();
     if (token == null) return false;
-    if (token.isExpired) return false;
-    return true;
+    if (!token.isExpired) return true;
+
+    // An expired access token is not an expired session: the refresh token is
+    // good for 30 days. Bouncing to the login screen here logged the user out an
+    // hour after every sign-in, which also stopped ride sync.
+    return _apiClient.refreshNow();
   }
 
   Future<User> _handleAuthResponse(Map<String, dynamic> data) async {

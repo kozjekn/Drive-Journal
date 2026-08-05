@@ -2,13 +2,25 @@
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Required by geolocator's foreground service when enableWakeLock is set:
+         GeolocatorLocationService acquires a PARTIAL_WAKE_LOCK, and the plugin's
+         own manifest does not declare this permission. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Android 13+: gates *display* of the foreground-service notification.
+         The service still runs if denied. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- ACCESS_BACKGROUND_LOCATION is deliberately NOT declared. We only track while a
+         foregroundServiceType="location" service started from a visible activity is
+         running, which does not require it. Declaring it also makes geolocator bundle
+         background location into the same runtime request as fine/coarse, which
+         Android 11+ silently discards. -->
+
     <application
-        android:label="ride_journal"
+        android:label="Ride Journal"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -33,11 +45,10 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- Foreground service for background GPS tracking (geolocator) -->
-        <service
-            android:name="com.baseflow.geolocator.GeolocatorService"
-            android:foregroundServiceType="location"
-            android:exported="false" />
+        <!-- No <service> declaration for geolocator here on purpose: the real class is
+             com.baseflow.geolocator.GeolocatorLocationService and the plugin already
+             declares it with foregroundServiceType="location". The manifest merger pulls
+             it in. (The previous hand-written entry named a class that does not exist.) -->
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

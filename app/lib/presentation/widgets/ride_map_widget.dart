@@ -18,8 +18,10 @@ class RideMapWidget extends StatelessWidget {
   List<LatLng> get _latLngPoints =>
       routePoints.map((p) => LatLng(p.latitude, p.longitude)).toList();
 
+  /// Null for a single-point track: degenerate bounds would ask the camera to
+  /// fit a zero-area box.
   LatLngBounds? get _bounds {
-    if (_latLngPoints.isEmpty) return null;
+    if (_latLngPoints.length < 2) return null;
     return LatLngBounds.fromPoints(_latLngPoints);
   }
 
@@ -37,7 +39,7 @@ class RideMapWidget extends StatelessWidget {
       );
     }
 
-    final center = _bounds != null ? _bounds!.center : _latLngPoints.first;
+    final bounds = _bounds;
 
     return SizedBox(
       height: height,
@@ -45,7 +47,15 @@ class RideMapWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: FlutterMap(
           options: MapOptions(
-            initialCenter: center,
+            // Fit the whole route. A fixed zoom around the centre made any ride
+            // longer than a few km overflow the viewport.
+            initialCameraFit: bounds != null
+                ? CameraFit.bounds(
+                    bounds: bounds,
+                    padding: const EdgeInsets.all(24),
+                  )
+                : null,
+            initialCenter: bounds?.center ?? _latLngPoints.first,
             initialZoom: 14,
             interactionOptions: InteractionOptions(
               flags: interactive ? InteractiveFlag.all : InteractiveFlag.none,
@@ -54,7 +64,7 @@ class RideMapWidget extends StatelessWidget {
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.ridejournal.ride_journal',
+              userAgentPackageName: 'dev.kozjek.ride',
             ),
             if (_latLngPoints.length >= 2)
               PolylineLayer(

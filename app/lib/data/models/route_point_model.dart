@@ -36,7 +36,7 @@ class RoutePointModel extends RoutePoint {
       longitude: (json['longitude'] as num).toDouble(),
       altitude: (json['altitude'] as num).toDouble(),
       speed: (json['speed'] as num).toDouble(),
-      timestamp: DateTime.parse(json['timestamp'] as String),
+      timestamp: DateTime.parse(json['timestamp'] as String).toLocal(),
     );
   }
 
@@ -56,7 +56,8 @@ class RoutePointModel extends RoutePoint {
       'longitude': longitude,
       'altitude': altitude,
       'speed': speed,
-      'timestamp': timestamp.toIso8601String(),
+      // UTC with a trailing Z, matching RideModel.toJson.
+      'timestamp': timestamp.toUtc().toIso8601String(),
     };
   }
 

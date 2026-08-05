@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Ride Tracker</string>
+	<string>Ride Journal</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>ride_journal</string>
+	<string>Ride Journal</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -47,12 +47,14 @@
 			</array>
 		</dict>
 	</dict>
+	<!-- Only the WhenInUse key is declared. geolocator branches on these keys and calls
+	     requestWhenInUseAuthorization whenever this one is present, so it can never reach
+	     requestAlwaysAuthorization — the Always keys were dead weight that would invite an
+	     App Review question about why we claim Always access. WhenInUse plus
+	     UIBackgroundModes=location is sufficient for continuous updates with the screen
+	     locked, as long as tracking is started while the app is in the foreground. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Ride Tracker needs your location to record your motorcycle rides.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Ride Tracker needs background location access to continue recording your ride when the app is in the background.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Ride Tracker needs background location access to continue recording your ride when the app is in the background.</string>
+	<string>Ride Journal records your route while you ride, including when your screen is off.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

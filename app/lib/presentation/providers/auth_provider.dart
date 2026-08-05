@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:ride_journal/core/network/api_client.dart';
 import 'package:ride_journal/domain/entities/user.dart';
 import 'package:ride_journal/domain/repositories/auth_repository.dart';
 
@@ -6,12 +9,23 @@ enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
 class AuthProvider extends ChangeNotifier {
   final AuthRepository _authRepository;
+  StreamSubscription<void>? _sessionExpiredSub;
 
   AuthStatus _status = AuthStatus.initial;
   User? _user;
   String? _errorMessage;
 
-  AuthProvider(this._authRepository);
+  AuthProvider(this._authRepository, ApiClient apiClient) {
+    // Turns a silent auth death (revoked or expired refresh token) into a visible
+    // login screen, rather than every request just failing.
+    _sessionExpiredSub = apiClient.onSessionExpired.listen((_) {
+      if (_status == AuthStatus.unauthenticated) return;
+      _user = null;
+      _errorMessage = 'Your session expired. Please sign in again.';
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+    });
+  }
 
   AuthStatus get status => _status;
   User? get user => _user;
@@ -94,5 +108,11 @@ class AuthProvider extends ChangeNotifier {
     _user = null;
     _status = AuthStatus.unauthenticated;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _sessionExpiredSub?.cancel();
+    super.dispose();
   }
 }
