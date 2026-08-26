@@ -2,17 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:ride_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/presentation/pages/fullscreen_map_page.dart';
 
 class RideMapWidget extends StatelessWidget {
   final List<RoutePoint> routePoints;
   final bool interactive;
-  final double height;
+
+  /// Null fills the parent — that is how [FullscreenMapPage] renders it.
+  final double? height;
+
+  final double borderRadius;
+
+  /// Shows an expand button in the top-right corner that opens the route in
+  /// [FullscreenMapPage].
+  final bool expandable;
+
+  /// Ride name, shown as a label on the fullscreen page.
+  final String? title;
 
   const RideMapWidget({
     super.key,
     required this.routePoints,
     this.interactive = true,
     this.height = 300,
+    this.borderRadius = 16,
+    this.expandable = false,
+    this.title,
   });
 
   List<LatLng> get _latLngPoints =>
@@ -28,6 +43,7 @@ class RideMapWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (routePoints.isEmpty) {
+      // No expand button here — there is nothing to enlarge.
       return SizedBox(
         height: height,
         child: const Center(
@@ -41,10 +57,8 @@ class RideMapWidget extends StatelessWidget {
 
     final bounds = _bounds;
 
-    return SizedBox(
-      height: height,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+    Widget map = ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
         child: FlutterMap(
           options: MapOptions(
             // Fit the whole route. A fixed zoom around the centre made any ride
@@ -104,7 +118,33 @@ class RideMapWidget extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
+
+    if (expandable) {
+      map = Stack(
+        children: [
+          Positioned.fill(child: map),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: FloatingActionButton.small(
+              heroTag: 'expand-map',
+              tooltip: 'Expand map',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => FullscreenMapPage(
+                    routePoints: routePoints,
+                    title: title,
+                  ),
+                ),
+              ),
+              child: const Icon(Icons.fullscreen),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return height == null ? map : SizedBox(height: height, child: map);
   }
 }

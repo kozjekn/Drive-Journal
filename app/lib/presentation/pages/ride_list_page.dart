@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ride_journal/presentation/pages/debug_page.dart';
@@ -5,6 +7,7 @@ import 'package:ride_journal/presentation/pages/record_ride_page.dart';
 import 'package:ride_journal/presentation/pages/ride_detail_page.dart';
 import 'package:ride_journal/presentation/providers/record_ride_provider.dart';
 import 'package:ride_journal/presentation/providers/ride_list_provider.dart';
+import 'package:ride_journal/presentation/providers/sync_provider.dart';
 import 'package:ride_journal/presentation/widgets/ride_card.dart';
 import 'package:ride_journal/presentation/widgets/unfinished_ride_card.dart';
 
@@ -86,7 +89,7 @@ class _RideListPageState extends State<RideListPage> {
                         return RideCard(
                           ride: ride,
                           onTap: () => _navigateToDetail(ride.id),
-                          onDismissed: () => provider.deleteRide(ride.id),
+                          onDismissed: () => _deleteRide(provider, ride.id),
                         );
                       },
                     ),
@@ -111,6 +114,24 @@ class _RideListPageState extends State<RideListPage> {
     );
   }
 
+  Future<void> _deleteRide(RideListProvider provider, String rideId) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final sync = context.read<SyncProvider>();
+
+    await provider.deleteRide(rideId);
+
+    if (provider.error != null) {
+      // The row is already gone from the tree by now, so without this the
+      // failure is completely silent.
+      messenger.showSnackBar(SnackBar(content: Text(provider.error!)));
+      return;
+    }
+
+    // Push the tombstone and refresh the pending counter. Not awaited: the row
+    // should animate away immediately.
+    unawaited(sync.sync(force: true));
+  }
+
   Future<void> _navigateToRecord() async {
     final provider = context.read<RecordRideProvider>();
     if (provider.hasRecoverableRide) {
@@ -126,9 +147,15 @@ class _RideListPageState extends State<RideListPage> {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const RecordRidePage()));
-    if (mounted) {
-      await context.read<RideListProvider>().loadRides();
-    }
+    if (mounted) await _syncAndReload();
+  }
+
+  /// Uploads whatever the record page just produced, then re-reads Hive so the
+  /// pending badges reflect the post-upload state instead of the snapshot taken
+  /// before the push landed.
+  Future<void> _syncAndReload() async {
+    await context.read<SyncProvider>().sync(force: true);
+    if (mounted) await context.read<RideListProvider>().loadRides();
   }
 }
 
@@ -211,16 +238,23 @@ class _RecoveryBanner extends StatelessWidget {
             await provider.resumeRecoveredRide();
             if (!context.mounted) return;
             await Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const RecordRidePage()),
+              MaterialPageRoute<void>(
+                // resumeRecoveredRide already started it.
+                builder: (_) => const RecordRidePage(autoStart: false),
+              ),
             );
+            if (context.mounted) {
+              await context.read<SyncProvider>().sync(force: true);
+            }
             if (context.mounted) {
               await context.read<RideListProvider>().loadRides();
             }
           },
           onSave: () async {
             final ride = await provider.saveRecoveredRide();
-            if (!context.mounted) return;
-            if (ride != null) {
+            if (!context.mounted || ride == null) return;
+            await context.read<SyncProvider>().sync(force: true);
+            if (context.mounted) {
               await context.read<RideListProvider>().loadRides();
             }
           },

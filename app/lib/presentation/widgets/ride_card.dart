@@ -14,6 +14,35 @@ class RideCard extends StatelessWidget {
     this.onDismissed,
   });
 
+  /// A false/null return springs the card back with nothing deleted.
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete ride?'),
+        content: Text(
+          '"${ride.name}" will be permanently deleted from this device and '
+          'from the cloud. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -23,6 +52,9 @@ class RideCard extends StatelessWidget {
       direction: onDismissed != null
           ? DismissDirection.endToStart
           : DismissDirection.none,
+      // The delete is permanent on this device *and* writes a server tombstone,
+      // with no undo — too much to hang off a stray swipe.
+      confirmDismiss: onDismissed == null ? null : (_) => _confirmDelete(context),
       onDismissed: (_) => onDismissed?.call(),
       background: Container(
         alignment: Alignment.centerRight,

@@ -135,8 +135,13 @@ class MockRideListProvider extends ChangeNotifier implements RideListProvider {
     notifyListeners();
   }
 
+  /// Ids passed to [deleteRide], so tests can assert the confirmation dialog
+  /// actually gates the delete.
+  final List<String> deletedIds = [];
+
   @override
   Future<void> deleteRide(String id) async {
+    deletedIds.add(id);
     _rides.removeWhere((r) => r.id == id);
     notifyListeners();
   }

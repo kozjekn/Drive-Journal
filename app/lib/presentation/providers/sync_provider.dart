@@ -13,14 +13,26 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// A resume shortly after a completed sync is not worth another round trip.
   static const Duration _resumeDebounce = Duration(seconds: 60);
 
+  /// Backgrounding is the last chance to upload before the OS suspends us, so
+  /// it gets a much shorter window — just long enough to absorb the
+  /// hidden-then-paused double-fire some platforms emit.
+  static const Duration _backgroundDebounce = Duration(seconds: 5);
+
   final RideRepository _rideRepository;
 
-  SyncProvider(this._rideRepository, {bool observeLifecycle = true}) {
+  SyncProvider(
+    this._rideRepository, {
+    bool observeLifecycle = true,
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now {
     if (observeLifecycle) {
       WidgetsBinding.instance.addObserver(this);
       _observingLifecycle = true;
     }
   }
+
+  /// Injectable so the debounce windows can be exercised without real waits.
+  final DateTime Function() _now;
 
   bool _observingLifecycle = false;
 
@@ -68,12 +80,14 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<SyncOutcome> sync({bool force = false}) async {
+  /// [debounce] overrides how recently a completed attempt suppresses this one;
+  /// [force] skips the check entirely.
+  Future<SyncOutcome> sync({bool force = false, Duration? debounce}) async {
     if (_boundUserId == null) return const SyncOutcome();
 
     if (!force && _lastAttemptCompletedAt != null) {
-      final since = DateTime.now().difference(_lastAttemptCompletedAt!);
-      if (since < _resumeDebounce) {
+      final since = _now().difference(_lastAttemptCompletedAt!);
+      if (since < (debounce ?? _resumeDebounce)) {
         return const SyncOutcome();
       }
     }
@@ -83,11 +97,11 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
 
     final outcome = await _rideRepository.syncRides();
-    _lastAttemptCompletedAt = DateTime.now();
+    _lastAttemptCompletedAt = _now();
 
     if (outcome.succeeded) {
       _state = SyncState.success;
-      _lastSyncAt = outcome.syncedAt ?? DateTime.now();
+      _lastSyncAt = outcome.syncedAt ?? _now();
     } else {
       _state = SyncState.error;
       _lastError = outcome.error;
@@ -100,8 +114,20 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      sync();
+    switch (state) {
+      case AppLifecycleState.resumed:
+        sync();
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        // Best effort: the OS may suspend us mid-request. Nothing is lost if it
+        // does — the ride stays in Hive marked pending and the next resume or
+        // sign-in picks it up.
+        sync(debounce: _backgroundDebounce);
+      case AppLifecycleState.inactive:
+        // Fires on every notification-shade pull and incoming call. Not a
+        // signal that we are going away.
+        break;
     }
   }
 

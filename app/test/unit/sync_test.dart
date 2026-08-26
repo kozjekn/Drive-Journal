@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ride_journal/core/network/api_exceptions.dart';
 import 'package:ride_journal/data/datasources/local/ride_local_data_source.dart';
@@ -5,6 +6,9 @@ import 'package:ride_journal/data/datasources/local/sync_local_data_source.dart'
 import 'package:ride_journal/data/datasources/remote/ride_remote_data_source.dart';
 import 'package:ride_journal/data/models/ride_model.dart';
 import 'package:ride_journal/data/repositories/ride_repository_impl.dart';
+import 'package:ride_journal/presentation/providers/sync_provider.dart';
+
+import '../mocks.dart';
 
 /// In-memory stand-in for the Hive-backed ride store.
 class _FakeRideLocal implements RideLocalDataSource {
@@ -367,6 +371,78 @@ void main() {
       await repository.bindToUser('user-1');
 
       expect(local.rides.containsKey('mine'), isTrue);
+    });
+  });
+
+  group('SyncProvider lifecycle triggers', () {
+    late MockRideRepository repo;
+    late SyncProvider provider;
+    late DateTime clock;
+
+    setUp(() async {
+      repo = MockRideRepository();
+      clock = DateTime(2026, 8, 26, 12);
+      provider = SyncProvider(
+        repo,
+        observeLifecycle: false,
+        now: () => clock,
+      );
+      // onSignedIn binds the account and burns one forced sync of its own.
+      await provider.onSignedIn('user-1');
+      repo.syncCallCount = 0;
+    });
+
+    tearDown(() => provider.dispose());
+
+    test('backgrounding uploads before the OS can suspend us', () async {
+      clock = clock.add(const Duration(seconds: 10));
+
+      provider.didChangeAppLifecycleState(AppLifecycleState.paused);
+      await pumpEventQueue();
+
+      expect(repo.syncCallCount, 1);
+    });
+
+    test('detaching uploads too', () async {
+      clock = clock.add(const Duration(seconds: 10));
+
+      provider.didChangeAppLifecycleState(AppLifecycleState.detached);
+      await pumpEventQueue();
+
+      expect(repo.syncCallCount, 1);
+    });
+
+    test('the hidden-then-paused double-fire only syncs once', () async {
+      clock = clock.add(const Duration(seconds: 10));
+
+      provider.didChangeAppLifecycleState(AppLifecycleState.hidden);
+      await pumpEventQueue();
+      provider.didChangeAppLifecycleState(AppLifecycleState.paused);
+      await pumpEventQueue();
+
+      expect(repo.syncCallCount, 1);
+    });
+
+    test('inactive is not a going-away signal', () async {
+      clock = clock.add(const Duration(seconds: 10));
+
+      provider.didChangeAppLifecycleState(AppLifecycleState.inactive);
+      await pumpEventQueue();
+
+      expect(repo.syncCallCount, 0);
+    });
+
+    test('a resume keeps the longer 60s window', () async {
+      clock = clock.add(const Duration(seconds: 10));
+
+      provider.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      await pumpEventQueue();
+      expect(repo.syncCallCount, 0, reason: '10s is inside the resume window');
+
+      clock = clock.add(const Duration(seconds: 61));
+      provider.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      await pumpEventQueue();
+      expect(repo.syncCallCount, 1);
     });
   });
 }

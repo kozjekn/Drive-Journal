@@ -65,7 +65,12 @@ class _RideDetailPageState extends State<RideDetailPage> {
                 const SizedBox(height: 20),
 
                 // Map
-                RideMapWidget(routePoints: ride.routePoints, height: 250),
+                RideMapWidget(
+                  routePoints: ride.routePoints,
+                  height: 250,
+                  expandable: true,
+                  title: ride.name,
+                ),
                 const SizedBox(height: 24),
 
                 // Stats grid
