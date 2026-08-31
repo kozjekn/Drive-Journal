@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:ride_journal/core/theme/app_theme.dart';
 import 'package:ride_journal/domain/entities/ride.dart';
 import 'package:ride_journal/domain/entities/route_point.dart';
+import 'package:ride_journal/domain/entities/sync_outcome.dart';
 import 'package:ride_journal/domain/usecases/save_ride.dart';
 import 'package:ride_journal/presentation/pages/fullscreen_map_page.dart';
 import 'package:ride_journal/presentation/pages/ride_list_page.dart';
@@ -263,6 +265,32 @@ void main() {
       expect(find.byIcon(Icons.fullscreen), findsOneWidget);
     });
 
+    testWidgets('the fullscreen map really fills the screen', (tester) async {
+      await tester.pumpWidget(wrapMap(points: route));
+      await tester.pump();
+
+      final inline = tester.getSize(find.byType(FlutterMap));
+
+      await tester.tap(find.byIcon(Icons.fullscreen));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      // Scoped to the pushed page: the inline map is still mounted underneath.
+      final fullscreen = tester.getSize(
+        find.descendant(
+          of: find.byType(FullscreenMapPage),
+          matching: find.byType(FlutterMap),
+        ),
+      );
+
+      // A Stack sizes to its non-positioned children, and Scaffold hands its body
+      // loose constraints — so an unpositioned overlay used to collapse this page
+      // to the height of the close button, leaving the map a thin strip.
+      final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+      expect(fullscreen, screen);
+      expect(fullscreen.height, greaterThan(inline.height));
+    });
+
     testWidgets('no expand affordance without a route', (tester) async {
       await tester.pumpWidget(wrapMap(points: const []));
       await tester.pump();
@@ -276,16 +304,20 @@ void main() {
     /// The page reads RecordRideProvider (unfinished-ride banner) and
     /// SyncProvider (post-delete / post-recording upload) too, so all three have
     /// to be in scope. SyncProvider has no bound user here, so sync() no-ops.
-    Widget wrap(MockRideListProvider listProvider) {
+    Widget wrap(MockRideListProvider listProvider, {SyncProvider? sync}) {
       return MaterialApp(
         theme: AppTheme.darkTheme,
         home: MultiProvider(
           providers: [
             ChangeNotifierProvider<RideListProvider>.value(value: listProvider),
-            ChangeNotifierProvider<SyncProvider>(
-              create: (_) =>
-                  SyncProvider(MockRideRepository(), observeLifecycle: false),
-            ),
+            // .value for an injected instance: the test owns its disposal.
+            if (sync != null)
+              ChangeNotifierProvider<SyncProvider>.value(value: sync)
+            else
+              ChangeNotifierProvider<SyncProvider>(
+                create: (_) =>
+                    SyncProvider(MockRideRepository(), observeLifecycle: false),
+              ),
             ChangeNotifierProvider<RecordRideProvider>(
               create: (_) => RecordRideProvider(
                 saveRide: SaveRide(MockRideRepository()),
@@ -300,6 +332,48 @@ void main() {
         ),
       );
     }
+
+    testWidgets('a sign-in sync reaches the list without a pull-to-refresh',
+        (tester) async {
+      // The reported bug: signing in on a fresh device synced the server's rides
+      // into Hive, but nothing re-read Hive afterwards, so the list stayed empty
+      // until the user pulled to refresh.
+      final listProvider = MockRideListProvider();
+      final repo = MockRideRepository();
+      final sync = SyncProvider(repo, observeLifecycle: false);
+      addTearDown(sync.dispose);
+
+      await tester.pumpWidget(wrap(listProvider, sync: sync));
+      await tester.pumpAndSettle();
+      expect(find.text('No rides yet'), findsOneWidget);
+
+      // What the sign-in sync pulls down lands in local storage...
+      repo.nextSyncOutcome =
+          SyncOutcome(pulled: 1, syncedAt: DateTime(2026, 8, 26));
+      listProvider.stagedLocalRides = [
+        Ride(
+          id: 'pulled-1',
+          name: 'Server Ride',
+          distanceMeters: 1000,
+          duration: const Duration(minutes: 10),
+          avgSpeedKmh: 6,
+          maxSpeedKmh: 12,
+          elevationGainMeters: 0,
+          startTime: DateTime(2026, 8, 3, 9),
+          endTime: DateTime(2026, 8, 3, 9, 10),
+          routePoints: const [],
+          updatedAt: DateTime(2026, 8, 3, 10),
+          syncedAt: DateTime(2026, 8, 3, 10),
+        ),
+      ];
+
+      await sync.onSignedIn('user-1');
+      await tester.pumpAndSettle();
+
+      // ...and the page shows it on its own.
+      expect(find.text('Server Ride'), findsOneWidget);
+      expect(find.text('No rides yet'), findsNothing);
+    });
 
     testWidgets('shows empty state when no rides', (WidgetTester tester) async {
       await tester.pumpWidget(wrap(MockRideListProvider()));

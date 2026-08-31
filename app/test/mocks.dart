@@ -124,9 +124,22 @@ class MockRideListProvider extends ChangeNotifier implements RideListProvider {
     notifyListeners();
   }
 
+  /// How many times the page asked for a fresh read of local storage.
+  int loadCallCount = 0;
+
+  /// Handed over by the next [loadRides]. Stands in for rides a sync has just
+  /// written into Hive behind the page's back.
+  List<Ride>? stagedLocalRides;
+
   @override
   Future<void> loadRides() async {
-    // No-op in mock
+    loadCallCount++;
+    final staged = stagedLocalRides;
+    if (staged != null) {
+      _rides = staged;
+      stagedLocalRides = null;
+    }
+    notifyListeners();
   }
 
   @override

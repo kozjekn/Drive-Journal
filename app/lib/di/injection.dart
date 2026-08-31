@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ride_journal/core/network/api_client.dart';
+import 'package:ride_journal/core/services/connectivity_service.dart';
 import 'package:ride_journal/core/services/location_service.dart';
 import 'package:ride_journal/core/services/screen_wake_service.dart';
 import 'package:ride_journal/data/datasources/local/active_ride_local_data_source.dart';
@@ -107,6 +108,7 @@ Future<void> configureDependencies() async {
   // Services
   sl.registerLazySingleton<LocationService>(() => LocationServiceImpl());
   sl.registerLazySingleton<ScreenWakeService>(() => ScreenWakeServiceImpl());
+  sl.registerLazySingleton<ConnectivityService>(() => ConnectivityServiceImpl());
 
   // Providers
   sl.registerFactory(
@@ -128,7 +130,10 @@ Future<void> configureDependencies() async {
       activeRideStore: sl<ActiveRideLocalDataSource>(),
     ),
   );
-  sl.registerFactory(() => SyncProvider(sl<RideRepository>()));
+  sl.registerFactory(() => SyncProvider(
+        sl<RideRepository>(),
+        onConnectivityRestored: sl<ConnectivityService>().onRestored,
+      ));
   sl.registerFactory(() => FeedProvider(sl<RideRemoteDataSource>()));
   sl.registerFactory(() => UserSearchProvider(sl<UserRemoteDataSource>()));
   sl.registerFactory(() => UserProfileProvider(sl<UserRemoteDataSource>()));

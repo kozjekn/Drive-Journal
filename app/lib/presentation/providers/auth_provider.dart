@@ -15,11 +15,17 @@ class AuthProvider extends ChangeNotifier {
   User? _user;
   String? _errorMessage;
 
+  /// True when the last drop to [AuthStatus.unauthenticated] was involuntary.
+  /// Callers use it to tell an expired session from a deliberate sign-out —
+  /// only the latter may throw away local data.
+  bool _sessionExpired = false;
+
   AuthProvider(this._authRepository, ApiClient apiClient) {
     // Turns a silent auth death (revoked or expired refresh token) into a visible
     // login screen, rather than every request just failing.
     _sessionExpiredSub = apiClient.onSessionExpired.listen((_) {
       if (_status == AuthStatus.unauthenticated) return;
+      _sessionExpired = true;
       _user = null;
       _errorMessage = 'Your session expired. Please sign in again.';
       _status = AuthStatus.unauthenticated;
@@ -31,6 +37,7 @@ class AuthProvider extends ChangeNotifier {
   User? get user => _user;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
+  bool get sessionExpired => _sessionExpired;
 
   Future<void> checkAuthStatus() async {
     _status = AuthStatus.loading;
@@ -57,6 +64,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _status = AuthStatus.loading;
     _errorMessage = null;
+    _sessionExpired = false;
     notifyListeners();
 
     try {
@@ -76,6 +84,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> login({required String email, required String password}) async {
     _status = AuthStatus.loading;
     _errorMessage = null;
+    _sessionExpired = false;
     notifyListeners();
 
     try {
@@ -91,6 +100,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> googleSignIn() async {
     _status = AuthStatus.loading;
     _errorMessage = null;
+    _sessionExpired = false;
     notifyListeners();
 
     try {
@@ -105,6 +115,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await _authRepository.logout();
+    _sessionExpired = false;
     _user = null;
     _status = AuthStatus.unauthenticated;
     notifyListeners();

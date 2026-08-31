@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart'
     show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
@@ -18,17 +20,30 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// hidden-then-paused double-fire some platforms emit.
   static const Duration _backgroundDebounce = Duration(seconds: 5);
 
+  /// Regaining signal right after a sync failed offline is exactly when a retry
+  /// is wanted, so the 60s resume window would be counterproductive here —
+  /// [sync] debounces on attempt *completed*, failures included.
+  static const Duration _reconnectDebounce = Duration(seconds: 5);
+
   final RideRepository _rideRepository;
 
+  StreamSubscription<void>? _reconnectSub;
+
+  /// [onConnectivityRestored] is a bare stream rather than the service itself so
+  /// this provider stays free of platform plugins and tests can pump it.
   SyncProvider(
     this._rideRepository, {
     bool observeLifecycle = true,
     DateTime Function()? now,
+    Stream<void>? onConnectivityRestored,
   }) : _now = now ?? DateTime.now {
     if (observeLifecycle) {
       WidgetsBinding.instance.addObserver(this);
       _observingLifecycle = true;
     }
+    _reconnectSub = onConnectivityRestored?.listen((_) {
+      sync(debounce: _reconnectDebounce);
+    });
   }
 
   /// Injectable so the debounce windows can be exercised without real waits.
@@ -39,6 +54,12 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Set by [onSignedIn]. While null there is no account to sync, so lifecycle
   /// triggers stay quiet instead of reporting a "not signed in" error.
   String? _boundUserId;
+
+  /// Bumped whenever a completed run changed what is in local storage. UI that
+  /// reads Hive watches this instead of pairing every sync call with its own
+  /// manual reload.
+  int _dataVersion = 0;
+  int get dataVersion => _dataVersion;
 
   SyncState _state = SyncState.idle;
   int _pendingCount = 0;
@@ -57,6 +78,10 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> onSignedIn(String userId) async {
     _boundUserId = userId;
     await _rideRepository.bindToUser(userId);
+    // Unconditional: bindToUser may have just wiped another account's rides, and
+    // if the sync below then pulls nothing the counter would never move and the
+    // previous account's rides would stay on screen.
+    _dataVersion++;
     await refreshPendingCount();
     await sync(force: true);
   }
@@ -68,6 +93,18 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
     _lastSyncAt = null;
     _lastError = null;
     _state = SyncState.idle;
+    notifyListeners();
+  }
+
+  /// The session died on its own (refresh token expired or revoked). Unlike a
+  /// deliberate sign-out, local rides are KEPT: some were never uploaded, and the
+  /// same account almost always signs back in on this device. The owner marker is
+  /// left alone too, so a re-login keeps them and a different account still trips
+  /// the wipe inside bindToUser.
+  Future<void> onSessionExpired() async {
+    _boundUserId = null;
+    _state = SyncState.idle;
+    _lastError = null;
     notifyListeners();
   }
 
@@ -102,6 +139,7 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (outcome.succeeded) {
       _state = SyncState.success;
       _lastSyncAt = outcome.syncedAt ?? _now();
+      if (outcome.didAnything) _dataVersion++;
     } else {
       _state = SyncState.error;
       _lastError = outcome.error;
@@ -133,6 +171,7 @@ class SyncProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _reconnectSub?.cancel();
     if (_observingLifecycle) {
       WidgetsBinding.instance.removeObserver(this);
     }

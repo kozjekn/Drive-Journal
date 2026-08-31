@@ -86,7 +86,13 @@ class _AuthGateState extends State<AuthGate> {
       case AuthStatus.unauthenticated:
         if (_lastStatus == AuthStatus.authenticated) {
           _lastUserId = null;
-          sync.onSignedOut();
+          // An expired session must not destroy rides that were never uploaded;
+          // a deliberate sign-out must, since someone else may use the device.
+          if (auth.sessionExpired) {
+            sync.onSessionExpired();
+          } else {
+            sync.onSignedOut();
+          }
         }
       case AuthStatus.initial:
       case AuthStatus.loading:

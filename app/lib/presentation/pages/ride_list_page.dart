@@ -19,14 +19,39 @@ class RideListPage extends StatefulWidget {
 }
 
 class _RideListPageState extends State<RideListPage> {
+  late final SyncProvider _sync;
+  late int _seenDataVersion;
+
   @override
   void initState() {
     super.initState();
+
+    // Hive is the source of truth for this list, and SyncProvider is what writes
+    // into it — on sign-in, on resume and on reconnect. Without this listener the
+    // sign-in sync landed in Hive and the list never re-read it, so a fresh login
+    // showed nothing until a pull-to-refresh.
+    _sync = context.read<SyncProvider>();
+    _seenDataVersion = _sync.dataVersion;
+    _sync.addListener(_onSyncChanged);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Local read for instant first paint; sync happens via SyncProvider and
       // pull-to-refresh.
       context.read<RideListProvider>().loadRides();
     });
+  }
+
+  void _onSyncChanged() {
+    if (!mounted || _sync.dataVersion == _seenDataVersion) return;
+    _seenDataVersion = _sync.dataVersion;
+    context.read<RideListProvider>().loadRides();
+  }
+
+  @override
+  void dispose() {
+    // SyncProvider outlives this page.
+    _sync.removeListener(_onSyncChanged);
+    super.dispose();
   }
 
   @override

@@ -42,6 +42,11 @@ dependencies:
   dio: ^5.7.0
   flutter_secure_storage: ^9.2.4
 
+  # Network reachability, so a device that regains signal syncs immediately
+  # instead of waiting for the next resume. Same win32 ^5 constraint as
+  # flutter_secure_storage above, so the two resolve together.
+  connectivity_plus: ^6.1.0
+
   # Auth
   google_sign_in: ^6.2.2
 

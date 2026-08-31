@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ride_journal/core/network/api_exceptions.dart';
@@ -6,6 +8,7 @@ import 'package:ride_journal/data/datasources/local/sync_local_data_source.dart'
 import 'package:ride_journal/data/datasources/remote/ride_remote_data_source.dart';
 import 'package:ride_journal/data/models/ride_model.dart';
 import 'package:ride_journal/data/repositories/ride_repository_impl.dart';
+import 'package:ride_journal/domain/entities/sync_outcome.dart';
 import 'package:ride_journal/presentation/providers/sync_provider.dart';
 
 import '../mocks.dart';
@@ -371,6 +374,137 @@ void main() {
       await repository.bindToUser('user-1');
 
       expect(local.rides.containsKey('mine'), isTrue);
+    });
+  });
+
+  group('SyncProvider change signalling', () {
+    late MockRideRepository repo;
+    late SyncProvider provider;
+
+    setUp(() => repo = MockRideRepository());
+    tearDown(() => provider.dispose());
+
+    test('signing in bumps dataVersion even when the sync pulls nothing',
+        () async {
+      provider = SyncProvider(repo, observeLifecycle: false);
+      final before = provider.dataVersion;
+
+      await provider.onSignedIn('user-1');
+
+      // bindToUser may have just wiped another account's rides; if the sync then
+      // pulls nothing, this bump is the only thing telling the list to re-read.
+      expect(provider.dataVersion, greaterThan(before));
+    });
+
+    test('a sync that changed nothing leaves dataVersion alone', () async {
+      provider = SyncProvider(repo, observeLifecycle: false);
+      await provider.onSignedIn('user-1');
+      final settled = provider.dataVersion;
+
+      await provider.sync(force: true);
+
+      expect(provider.dataVersion, settled);
+    });
+
+    test('a sync that pulled rides bumps dataVersion', () async {
+      provider = SyncProvider(repo, observeLifecycle: false);
+      await provider.onSignedIn('user-1');
+      final settled = provider.dataVersion;
+      repo.nextSyncOutcome = SyncOutcome(pulled: 2, syncedAt: DateTime(2026, 8));
+
+      await provider.sync(force: true);
+
+      expect(provider.dataVersion, settled + 1);
+    });
+  });
+
+  group('SyncProvider sign-out vs session expiry', () {
+    late MockRideRepository repo;
+    late SyncProvider provider;
+
+    setUp(() async {
+      repo = MockRideRepository();
+      provider = SyncProvider(repo, observeLifecycle: false);
+      await provider.onSignedIn('user-1');
+      // syncedAt is null, so this ride has never reached the server.
+      await repo.saveRide(buildRide(id: 'r1').toEntity());
+    });
+
+    tearDown(() => provider.dispose());
+
+    test('a deliberate sign-out clears local rides', () async {
+      await provider.onSignedOut();
+
+      expect(repo.clearedLocalData, isTrue);
+      expect(await repo.getAllRides(), isEmpty);
+    });
+
+    test('an expired session keeps rides that were never uploaded', () async {
+      await provider.onSessionExpired();
+
+      expect(repo.clearedLocalData, isFalse);
+      expect(await repo.getAllRides(), hasLength(1));
+      // The owner marker survives, so signing back in keeps them — while a
+      // different account still trips the wipe inside bindToUser.
+      expect(repo.boundUserId, 'user-1');
+    });
+
+    test('an expired session stops lifecycle triggers until re-auth', () async {
+      await provider.onSessionExpired();
+      repo.syncCallCount = 0;
+
+      provider.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      await pumpEventQueue();
+
+      expect(repo.syncCallCount, 0);
+    });
+  });
+
+  group('SyncProvider reconnect trigger', () {
+    late MockRideRepository repo;
+    late SyncProvider provider;
+    late StreamController<void> reconnects;
+    late DateTime clock;
+
+    setUp(() {
+      repo = MockRideRepository();
+      reconnects = StreamController<void>.broadcast();
+      clock = DateTime(2026, 8, 26, 12);
+      provider = SyncProvider(
+        repo,
+        observeLifecycle: false,
+        now: () => clock,
+        onConnectivityRestored: reconnects.stream,
+      );
+    });
+
+    tearDown(() async {
+      provider.dispose();
+      await reconnects.close();
+    });
+
+    test('a reconnect syncs where a resume at the same moment would not',
+        () async {
+      await provider.onSignedIn('user-1');
+      repo.syncCallCount = 0;
+      clock = clock.add(const Duration(seconds: 6));
+
+      provider.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      await pumpEventQueue();
+      expect(repo.syncCallCount, 0, reason: '6s is inside the 60s resume window');
+
+      reconnects.add(null);
+      await pumpEventQueue();
+      expect(repo.syncCallCount, 1,
+          reason: 'but outside the 5s reconnect window — retrying a sync that '
+              'failed while offline is the whole point');
+    });
+
+    test('a reconnect before sign-in stays quiet', () async {
+      reconnects.add(null);
+      await pumpEventQueue();
+
+      expect(repo.syncCallCount, 0);
     });
   });
 
