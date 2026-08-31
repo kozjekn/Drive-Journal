@@ -9,50 +9,8 @@ import 'package:ride_journal/di/injection.dart';
 import 'package:ride_journal/presentation/providers/record_ride_provider.dart';
 import 'package:ride_journal/presentation/widgets/web_recording_notice.dart';
 
-/// Starts the recording, gated on web by the one-time screen-off explanation.
-///
-/// Shared by the auto-start in [_RecordRidePageState.initState] and the manual
-/// start/retry buttons, so both paths behave identically.
-Future<void> _beginRecording(
-  BuildContext context,
-  RecordRideProvider provider,
-) async {
-  // One-time explanation of the browser's screen-off limitation before the
-  // first web recording.
-  if (kIsWeb && !await WebRecordingNotice.hasAcknowledged()) {
-    if (!context.mounted) return;
-    final proceed = await WebRecordingNotice.show(context);
-    if (!proceed || !context.mounted) return;
-  }
-  await provider.startRecording();
-}
-
-class RecordRidePage extends StatefulWidget {
-  /// Begins recording as soon as the map is on screen, so "Start Ride" on the
-  /// list is a single tap. False when arriving with a recording already running
-  /// — resuming a recovered ride, for instance.
-  final bool autoStart;
-
-  const RecordRidePage({super.key, this.autoStart = true});
-
-  @override
-  State<RecordRidePage> createState() => _RecordRidePageState();
-}
-
-class _RecordRidePageState extends State<RecordRidePage> {
-  @override
-  void initState() {
-    super.initState();
-    if (!widget.autoStart) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final provider = context.read<RecordRideProvider>();
-      // Only from a standing start: a page opened over a live or recovered
-      // recording must not restart it.
-      if (provider.state != RecordingState.idle) return;
-      _beginRecording(context, provider);
-    });
-  }
+class RecordRidePage extends StatelessWidget {
+  const RecordRidePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -181,9 +139,9 @@ class _LiveMapState extends State<_LiveMap> {
     }
     try {
       final locationService = sl<LocationService>();
-      // Auto-start requests permissions at the same moment; without waiting for
-      // the grant this call loses the race, throws, and pins the camera on the
-      // fallback. ensurePermissions only re-prompts while still denied.
+      // The page opens before "Start Ride" is pressed, so nothing has asked for
+      // location yet. Without this, getCurrentPosition throws on a fresh install
+      // and the map sits on the fallback until recording begins.
       await locationService.ensurePermissions();
       final position = await locationService.getCurrentPosition();
       if (!mounted) return;
@@ -414,11 +372,22 @@ class _ControlButton extends StatelessWidget {
     );
   }
 
+  Future<void> _start(BuildContext context) async {
+    // One-time explanation of the browser's screen-off limitation before the
+    // first web recording.
+    if (kIsWeb && !await WebRecordingNotice.hasAcknowledged()) {
+      if (!context.mounted) return;
+      final proceed = await WebRecordingNotice.show(context);
+      if (!proceed || !context.mounted) return;
+    }
+    await provider.startRecording();
+  }
+
   Widget _buildButton(BuildContext context) {
     switch (provider.state) {
       case RecordingState.idle:
         return ElevatedButton.icon(
-          onPressed: () => _beginRecording(context, provider),
+          onPressed: () => _start(context),
           icon: const Icon(Icons.play_arrow, size: 28),
           label: const Text('Start Ride', style: TextStyle(fontSize: 18)),
         );
@@ -450,7 +419,7 @@ class _ControlButton extends StatelessWidget {
         return const Center(child: CircularProgressIndicator());
       case RecordingState.error:
         return ElevatedButton.icon(
-          onPressed: () => _beginRecording(context, provider),
+          onPressed: () => _start(context),
           icon: const Icon(Icons.refresh, size: 28),
           label: Text(
             provider.error ?? 'Error - Tap to retry',

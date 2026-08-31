@@ -238,10 +238,7 @@ class _RecoveryBanner extends StatelessWidget {
             await provider.resumeRecoveredRide();
             if (!context.mounted) return;
             await Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                // resumeRecoveredRide already started it.
-                builder: (_) => const RecordRidePage(autoStart: false),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const RecordRidePage()),
             );
             if (context.mounted) {
               await context.read<SyncProvider>().sync(force: true);
