@@ -84,7 +84,7 @@ is the single push/pull path.
 
 Two timestamps, deliberately distinct:
 
-- **`updatedAt`** is the *client's* logical version. Conflicts resolve to the later
+- **`updatedAt`** is the _client's_ logical version. Conflicts resolve to the later
   `updatedAt`. Clients send UTC (`...Z`).
 - **`serverUpdatedAt`** is stamped by the repository on every write and is the pull
   cursor. Filtering the pull on `updatedAt` would drop rides whenever a device's
@@ -135,10 +135,23 @@ docker build \
   -f ../Dockerfile.prod \
   -t nejek16/ridejournal:0.0.1 \
   -t nejek16/ridejournal:latest \
-  .. 
+  ..
+```
+
+or
+
+```
+docker buildx build \
+  -f ../Dockerfile.prod \
+  -t nejek16/ridejournal:0.0.1 \
+  -t nejek16/ridejournal:latest \
+  --platform linux/amd64,linux/arm64 \
+  --push \
+  ..
 ```
 
 Push to Docker Hub:
+
 ```
 docker push "nejek16/ridejournal:0.0.1"
 docker push "nejek16/ridejournal:latest"
@@ -147,7 +160,7 @@ docker push "nejek16/ridejournal:latest"
 ### Creating the OAuth Client ID
 
 1. Open the [Google Cloud Console](https://console.cloud.google.com/) and create a project (or pick an existing one).
-2. Go to **APIs & Services → OAuth consent screen**, configure it (External, app name, support email), and add yourself as a test user while in *Testing* mode.
+2. Go to **APIs & Services → OAuth consent screen**, configure it (External, app name, support email), and add yourself as a test user while in _Testing_ mode.
 3. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**.
 4. Create the client IDs needed by the mobile app (see the [app README](../app/README.md#google-sign-in-setup) for the platform-specific list):
    - **Android** OAuth client — needs the app's package name and the SHA-1 fingerprint of the signing key.
