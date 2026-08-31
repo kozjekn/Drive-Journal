@@ -51,28 +51,15 @@ class _LoginPageState extends State<LoginPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.motorcycle,
-                    size: 80,
-                    color: Theme.of(context).colorScheme.primary,
+                  // The lockup already carries the wordmark and the
+                  // "TRACK | RIDE | EXPLORE" tagline, so no title text here.
+                  Image.asset(
+                    'assets/logo_full_light.png',
+                    height: 180,
+                    fit: BoxFit.contain,
+                    semanticLabel: 'Enduro - track, ride, explore',
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'RideJournal',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Track your rides',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 40),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,

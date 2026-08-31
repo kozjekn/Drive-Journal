@@ -72,3 +72,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    # Light-on-dark variant of the brand lockup. The source logo_full.png is
+    # drawn in near-black navy for light backgrounds; the app ships dark-only,
+    # so the recoloured copy is what actually gets rendered.
+    - assets/logo_full_light.png
