@@ -119,7 +119,7 @@ class LocationServiceImpl implements LocationService {
   ///   roughly 2.8 hours.
   static const LocationSettings _basicSettings = LocationSettings(
     accuracy: LocationAccuracy.bestForNavigation,
-    distanceFilter: 5,
+    distanceFilter: 10,
   );
 
   /// `kIsWeb` must be checked *before* `defaultTargetPlatform`: on web the
