@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/assets/logo_full.png" alt="Ride Journal" width="360">
+<img src="app/assets/logo_full_bg.png" alt="Ride Journal" width="360">
 
 **A motorcycle ride tracker for Android, iOS and the web.**
 
@@ -27,24 +27,24 @@ and shows them back with route maps, stats and a social feed of the riders you f
 
 ## Tech stack
 
-| Layer | Stack |
-| ----- | ----- |
-| App | Flutter (Dart 3.11) — Android, iOS, and an installable web PWA |
-| API | ASP.NET Core .NET 9, Clean Architecture, MediatR CQRS |
-| Database | MongoDB 7 |
-| Maps | OpenStreetMap via `flutter_map` |
-| Auth | JWT access/refresh tokens, BCrypt, Google Sign-In |
+| Layer    | Stack                                                          |
+| -------- | -------------------------------------------------------------- |
+| App      | Flutter (Dart 3.11) — Android, iOS, and an installable web PWA |
+| API      | ASP.NET Core .NET 9, Clean Architecture, MediatR CQRS          |
+| Database | MongoDB 7                                                      |
+| Maps     | OpenStreetMap via `flutter_map`                                |
+| Auth     | JWT access/refresh tokens, BCrypt, Google Sign-In              |
 
 ## Repository layout
 
-| Path | Contents |
-| ---- | -------- |
-| [app/](app/) | Flutter client — see [app/README.md](app/README.md) |
-| [backend-api/](backend-api/) | .NET 9 REST API — see [backend-api/README.md](backend-api/README.md) |
-| [scripts/setup.sh](scripts/setup.sh) | One-time development setup |
-| [Dockerfile](Dockerfile) | API-only production image |
-| [Dockerfile.prod](Dockerfile.prod) | Combined image — Flutter web bundle served by the API |
-| [.github/workflows/](.github/workflows/) | Backend CI |
+| Path                                     | Contents                                                             |
+| ---------------------------------------- | -------------------------------------------------------------------- |
+| [app/](app/)                             | Flutter client — see [app/README.md](app/README.md)                  |
+| [backend-api/](backend-api/)             | .NET 9 REST API — see [backend-api/README.md](backend-api/README.md) |
+| [scripts/setup.sh](scripts/setup.sh)     | One-time development setup                                           |
+| [Dockerfile](Dockerfile)                 | API-only production image                                            |
+| [Dockerfile.prod](Dockerfile.prod)       | Combined image — Flutter web bundle served by the API                |
+| [.github/workflows/](.github/workflows/) | Backend CI                                                           |
 
 ## Quick start
 
@@ -64,9 +64,9 @@ are in [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Documentation
 
-| Document | Covers |
-| -------- | ------ |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | Prerequisites, setup, local configuration, running, debugging, testing |
-| [PRODUCTION.md](PRODUCTION.md) | Docker images, deployment, Android/iOS release builds, Google OAuth, CI |
-| [app/README.md](app/README.md) | Flutter architecture, project structure, platform configuration, roadmap |
-| [backend-api/README.md](backend-api/README.md) | API architecture, the ride sync contract, database notes |
+| Document                                       | Covers                                                                   |
+| ---------------------------------------------- | ------------------------------------------------------------------------ |
+| [DEVELOPMENT.md](DEVELOPMENT.md)               | Prerequisites, setup, local configuration, running, debugging, testing   |
+| [PRODUCTION.md](PRODUCTION.md)                 | Docker images, deployment, Android/iOS release builds, Google OAuth, CI  |
+| [app/README.md](app/README.md)                 | Flutter architecture, project structure, platform configuration, roadmap |
+| [backend-api/README.md](backend-api/README.md) | API architecture, the ride sync contract, database notes                 |
