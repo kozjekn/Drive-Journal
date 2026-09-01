@@ -7,8 +7,10 @@ FROM ghcr.io/cirruslabs/flutter:3.41.6 AS flutter-build
 WORKDIR /app
 
 COPY app/ ./
-# Bake config into the web bundle at build time from the committed .env.prod via
-# --dart-define-from-file (no runtime asset fetch). `.env` (dev) is excluded via .dockerignore.
+# Bake config into the web bundle at build time from .env.prod via
+# --dart-define-from-file (no runtime asset fetch). `.env.prod` is gitignored — it is
+# created locally by scripts/setup.sh and must exist in the build context; see
+# PRODUCTION.md. `.env` (dev) is excluded via .dockerignore.
 RUN flutter pub get && flutter build web --release --dart-define-from-file=.env.prod
 
 # --- Stage 2: build & publish the .NET API ---
